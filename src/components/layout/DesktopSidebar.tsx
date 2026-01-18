@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import {
   FiBook,
+  FiBookOpen,
   FiClock,
   FiBookmark,
   FiUser,
@@ -259,7 +260,7 @@ export default function DesktopSidebar() {
                     delay={idx * 0.1}
                     onClick={() =>
                       router.push(
-                        `/reader/${novel.novelId}/${novel.currentChapter}`
+                        `/reader/${novel.novelId}/${novel.currentChapter}`,
                       )
                     }
                   />
@@ -537,8 +538,8 @@ function CurrentlyReadingCard({
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-2xl">
-            📖
+          <div className="w-full h-full flex items-center justify-center">
+            <FiBookOpen className="w-6 h-6 text-primary" />
           </div>
         )}
         {/* Progress Badge */}

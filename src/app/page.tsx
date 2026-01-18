@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import { FiBook } from "react-icons/fi";
 import { useAuthStore } from "@/store/authStore";
 
 export default function Home() {
@@ -49,7 +50,7 @@ export default function Home() {
           }}
           className="mb-8 text-8xl"
         >
-          📚
+          <FiBook className="w-20 h-20 text-primary" />
         </motion.div>
         <h1 className="mb-4 text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
           Nocturne

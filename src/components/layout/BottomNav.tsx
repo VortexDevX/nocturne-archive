@@ -22,6 +22,11 @@ export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Hide bottom nav on reader pages and novel detail pages
+  if (pathname.startsWith("/reader") || pathname.startsWith("/novel/")) {
+    return null;
+  }
+
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border backdrop-blur-lg bg-opacity-95">
       <div className="flex items-center justify-around px-2 py-2 safe-area-bottom">

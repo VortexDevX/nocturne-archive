@@ -15,6 +15,7 @@ import {
   FiTrash2,
   FiHardDrive,
   FiBook,
+  FiBookOpen,
   FiCheckCircle,
   FiAlertCircle,
   FiDownloadCloud,
@@ -89,7 +90,7 @@ export default function DownloadsManagerPage() {
       for (let i = start; i <= total; i++) {
         await fetchAndCacheChapter(slug, i);
         const progress = Math.round(
-          ((i - start + 1) / chaptersToDownload) * 100
+          ((i - start + 1) / chaptersToDownload) * 100,
         );
         setDownloadProgress((p) => ({ ...p, [slug]: progress }));
       }
@@ -330,8 +331,8 @@ export default function DownloadsManagerPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-3xl">
-                          📖
+                        <div className="w-full h-full flex items-center justify-center">
+                          <FiBookOpen className="w-8 h-8 text-primary" />
                         </div>
                       )}
                     </div>

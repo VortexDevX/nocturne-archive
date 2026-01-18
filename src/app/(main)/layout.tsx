@@ -81,7 +81,7 @@ export default function MainLayout({
               <div className="p-5 pb-4 border-b border-border bg-gradient-to-br from-primary/5 via-background to-background">
                 <div className="flex items-center justify-between mb-3">
                   <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-                    <span className="text-3xl">📚</span>
+                    <FiBook className="w-7 h-7 text-primary" />
                     Nocturne
                   </h1>
                   <div className="flex items-center gap-2">

@@ -17,6 +17,7 @@ import {
   FiCommand,
   FiHeart,
   FiPlus,
+  FiBook,
 } from "react-icons/fi";
 import { useHamburger } from "../layout";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
@@ -319,7 +320,9 @@ export default function ExplorePage() {
           </div>
         ) : filteredNovels.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center px-4">
-            <div className="text-6xl mb-4">📚</div>
+            <div className="flex items-center justify-center w-16 h-16 mb-4">
+              <FiBook className="w-10 h-10 text-muted-foreground" />
+            </div>
             <h3 className="text-xl font-bold mb-2">No novels found</h3>
             <p className="text-muted-foreground mb-6">
               Try adjusting your filters or search query
@@ -432,8 +435,8 @@ function NovelCard({
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 flex items-center justify-center text-4xl opacity-60">
-              📚
+            <div className="absolute inset-0 flex items-center justify-center opacity-60">
+              <FiBook className="w-10 h-10 text-muted-foreground" />
             </div>
           )}
 
@@ -447,8 +450,8 @@ function NovelCard({
                 novel.status === "ongoing"
                   ? "bg-blue-500/90 text-white"
                   : novel.status === "completed"
-                  ? "bg-green-500/90 text-white"
-                  : "bg-orange-500/90 text-white"
+                    ? "bg-green-500/90 text-white"
+                    : "bg-orange-500/90 text-white"
               }`}
             >
               {novel.status}

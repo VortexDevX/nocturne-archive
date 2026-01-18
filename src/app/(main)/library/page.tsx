@@ -18,6 +18,7 @@ import {
   FiClock,
   FiX,
   FiTrash2,
+  FiBook,
 } from "react-icons/fi";
 import Button from "@/components/ui/Button";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
@@ -116,7 +117,7 @@ export default function LibraryPage() {
 
   const handleToggleFavorite = async (
     novelId: string,
-    currentFavorite: boolean
+    currentFavorite: boolean,
   ) => {
     try {
       const response = await fetch("/api/library", {
@@ -134,7 +135,7 @@ export default function LibraryPage() {
 
       if (data.success) {
         toast.success(
-          currentFavorite ? "Removed from favorites" : "Added to favorites"
+          currentFavorite ? "Removed from favorites" : "Added to favorites",
         );
         fetchLibrary();
       }
@@ -155,7 +156,7 @@ export default function LibraryPage() {
     const matchesGenre =
       selectedGenres.length === 0 ||
       selectedGenres.some((g) =>
-        item.novel.genres.some((ng) => ng.toLowerCase() === g.toLowerCase())
+        item.novel.genres.some((ng) => ng.toLowerCase() === g.toLowerCase()),
       );
 
     return matchesSearch && matchesGenre;
@@ -249,7 +250,7 @@ export default function LibraryPage() {
 
   const toggleGenre = (genre: string) => {
     setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre],
     );
   };
 
@@ -321,8 +322,8 @@ export default function LibraryPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold mb-1 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white text-xl">
-                  📚
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white">
+                  <FiBook className="w-5 h-5" />
                 </div>
                 My Library
               </h1>
@@ -631,7 +632,9 @@ export default function LibraryPage() {
           </div>
         ) : sortedLibrary.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 text-center px-4">
-            <div className="text-6xl mb-4">📚</div>
+            <div className="flex items-center justify-center w-16 h-16">
+              <FiBook className="w-10 h-10 text-muted-foreground" />
+            </div>
             <h3 className="text-xl font-bold mb-2">
               {searchQuery || selectedGenres.length > 0
                 ? "No novels found"
@@ -765,7 +768,9 @@ function NovelCard({
             />
           ) : (
             <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-white text-center">
-              <div className="text-5xl mb-3">📖</div>
+              <div className="flex items-center justify-center w-14 h-14 mb-3">
+                <FiBookOpen className="w-10 h-10 text-white" />
+              </div>
               <div className="font-bold text-xs lg:text-sm line-clamp-3 px-2">
                 {item.novel.title}
               </div>
@@ -790,8 +795,8 @@ function NovelCard({
               {item.status === "reading"
                 ? "Continue"
                 : item.status === "completed"
-                ? "Re-read"
-                : "Read"}
+                  ? "Re-read"
+                  : "Read"}
             </Button>
           </div>
 
@@ -953,7 +958,7 @@ function NovelListItem({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-3xl">
-            📖
+            <FiBookOpen className="w-10 h-10 text-white" />
           </div>
         )}
       </div>
@@ -1064,8 +1069,8 @@ function NovelListItem({
             {item.status === "reading"
               ? "Continue"
               : item.status === "completed"
-              ? "Re-read"
-              : "Read"}
+                ? "Re-read"
+                : "Read"}
           </Button>
         </div>
       </div>

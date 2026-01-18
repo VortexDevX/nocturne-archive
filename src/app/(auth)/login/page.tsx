@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,9 +81,15 @@ export default function LoginPage() {
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ delay: 0.2, type: "spring" }}
-            className="mb-4 text-6xl"
+            className="mb-4 inline-flex items-center justify-center"
           >
-            📚
+            <Image
+              src="/logo.png"
+              alt="Nocturne"
+              width={64}
+              height={64}
+              priority
+            />
           </motion.div>
           <h1 className="mb-2 text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
             Welcome Back

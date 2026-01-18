@@ -9,7 +9,6 @@ import {
   FiSun,
   FiMonitor,
   FiChevronRight,
-  FiBell,
   FiDownload,
   FiBook,
   FiShield,
@@ -26,6 +25,7 @@ import {
   FiToggleLeft,
   FiToggleRight,
   FiCheckCircle,
+  FiHeart,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
@@ -65,7 +65,7 @@ const THEME_PREVIEWS = {
 };
 
 export default function SettingsPage() {
-  const { user, setUser, logout } = useAuthStore();
+  const { user, setUser } = useAuthStore();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const { toggleSidebar } = useHamburger();
@@ -73,13 +73,11 @@ export default function SettingsPage() {
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [loadingPrefs, setLoadingPrefs] = useState(false);
   const [libraryCount, setLibraryCount] = useState(0);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     fetchUserData();
     fetchPreferences();
     fetchLibraryCount();
-    checkNotificationPermission();
   }, []);
 
   const fetchUserData = async () => {
@@ -122,12 +120,6 @@ export default function SettingsPage() {
     }
   };
 
-  const checkNotificationPermission = () => {
-    if (typeof window !== "undefined" && "Notification" in window) {
-      setNotificationsEnabled(Notification.permission === "granted");
-    }
-  };
-
   const updatePreferences = async (update: Partial<UserPreferences>) => {
     try {
       const res = await fetch("/api/user/preferences", {
@@ -156,35 +148,14 @@ export default function SettingsPage() {
     const ok = await updatePreferences({ offlineMode: !prefs.offlineMode });
     if (ok) {
       toast.success(
-        !prefs.offlineMode ? "Offline mode enabled" : "Offline mode disabled"
+        !prefs.offlineMode ? "Offline mode enabled" : "Offline mode disabled",
       );
     }
   };
 
-  const handleNotifications = async () => {
-    if (typeof window === "undefined") return;
-    if (!("Notification" in window)) {
-      toast.error("Notifications not supported in this browser");
-      return;
-    }
-    try {
-      const perm = await Notification.requestPermission();
-      if (perm === "granted") {
-        setNotificationsEnabled(true);
-        toast.success("Notifications enabled");
-      } else if (perm === "denied") {
-        toast.error("Notifications blocked");
-      }
-    } catch {
-      toast.error("Failed to request notifications");
-    }
-  };
-
   const handleLogout = async () => {
-    if (confirm("Are you sure you want to logout?")) {
-      await logout();
-      router.push("/login");
-    }
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
   };
 
   const getMemberSince = () => {
@@ -453,52 +424,6 @@ export default function SettingsPage() {
               FEATURES
             </h2>
             <div className="bg-card rounded-xl border-2 border-border overflow-hidden divide-y divide-border">
-              {/* Notifications Toggle */}
-              <div className="p-4 hover:bg-secondary/50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`p-2 rounded-lg ${
-                        notificationsEnabled
-                          ? "bg-green-500/10"
-                          : "bg-secondary"
-                      }`}
-                    >
-                      <FiBell
-                        className={`w-5 h-5 ${
-                          notificationsEnabled
-                            ? "text-green-500"
-                            : "text-muted-foreground"
-                        }`}
-                      />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-sm">Notifications</p>
-                      <p className="text-xs text-muted-foreground">
-                        Get updates & alerts
-                      </p>
-                    </div>
-                  </div>
-                  <button onClick={handleNotifications} className="relative">
-                    {notificationsEnabled ? (
-                      <motion.div
-                        initial={{ scale: 0.8 }}
-                        animate={{ scale: 1 }}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-green-500/10 text-green-500 border border-green-500/20"
-                      >
-                        <FiToggleRight className="w-5 h-5" />
-                        <span className="text-xs font-medium">ON</span>
-                      </motion.div>
-                    ) : (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-secondary text-muted-foreground border border-border">
-                        <FiToggleLeft className="w-5 h-5" />
-                        <span className="text-xs font-medium">OFF</span>
-                      </div>
-                    )}
-                  </button>
-                </div>
-              </div>
-
               {/* Offline Mode Toggle */}
               <div className="p-4 hover:bg-secondary/50 transition-colors">
                 <div className="flex items-center justify-between">
@@ -592,7 +517,10 @@ export default function SettingsPage() {
             transition={{ delay: 0.5 }}
             className="text-center text-xs text-muted-foreground pt-4"
           >
-            <p>Made with ❤️ by Nocturne Team</p>
+            <p className="flex items-center justify-center gap-1">
+              Made with <FiHeart className="w-4 h-4 text-red-500" /> by Nocturne
+              Team
+            </p>
           </motion.div>
         </div>
       </div>

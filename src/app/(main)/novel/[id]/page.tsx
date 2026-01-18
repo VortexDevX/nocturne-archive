@@ -24,6 +24,7 @@ import {
   FiChevronsLeft,
   FiChevronsRight,
   FiChevronLeft,
+  FiBook,
 } from "react-icons/fi";
 import Button from "@/components/ui/Button";
 import { useHamburger } from "../../layout";
@@ -113,7 +114,7 @@ export default function NovelDetailPage() {
   const fetchProgress = async () => {
     try {
       const response = await fetch(
-        `/api/reading/progress?novelId=${params.id}`
+        `/api/reading/progress?novelId=${params.id}`,
       );
 
       if (!response.ok) {
@@ -237,7 +238,7 @@ export default function NovelDetailPage() {
         toast.success(
           libraryStatus.isFavorite
             ? "Removed from favorites"
-            : "Added to favorites!"
+            : "Added to favorites!",
         );
         checkLibraryStatus();
       } else {
@@ -309,14 +310,14 @@ export default function NovelDetailPage() {
       filtered = filtered.filter(
         (chapter) =>
           chapter.title.toLowerCase().includes(chapterSearch.toLowerCase()) ||
-          chapter.number.toString().includes(chapterSearch)
+          chapter.number.toString().includes(chapterSearch),
       );
     }
 
     // Unread filter
     if (filterUnread && progress) {
       filtered = filtered.filter(
-        (chapter) => !progress.chaptersRead.includes(chapter.number)
+        (chapter) => !progress.chaptersRead.includes(chapter.number),
       );
     }
 
@@ -394,7 +395,9 @@ export default function NovelDetailPage() {
   if (!novel) {
     return (
       <div className="flex flex-col items-center justify-center h-screen text-center px-4">
-        <div className="text-6xl mb-4">📚</div>
+        <div className="flex items-center justify-center w-16 h-16 mb-4">
+          <FiBook className="w-12 h-12 text-muted-foreground" />
+        </div>
         <h2 className="text-2xl font-bold mb-2">Novel Not Found</h2>
         <p className="text-muted-foreground mb-6">
           This novel doesn't exist or has been removed
@@ -443,7 +446,7 @@ export default function NovelDetailPage() {
               <FiMenu className="h-5 w-5" />
             </button>
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/library")}
               className="p-2 hover:bg-secondary rounded-lg transition-colors"
             >
               <FiArrowLeft className="h-5 w-5" />
@@ -491,8 +494,8 @@ export default function NovelDetailPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 via-purple-500/20 to-pink-500/20 flex items-center justify-center text-5xl lg:text-6xl">
-                      📖
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 via-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                      <FiBookOpen className="w-12 h-12 lg:w-14 lg:h-14 text-muted-foreground" />
                     </div>
                   )}
                 </div>
@@ -522,8 +525,8 @@ export default function NovelDetailPage() {
                       novel.status === "completed"
                         ? "bg-green-500/10 text-green-500 border-green-500/30"
                         : novel.status === "ongoing"
-                        ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
-                        : "bg-orange-500/10 text-orange-500 border-orange-500/30"
+                          ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
+                          : "bg-orange-500/10 text-orange-500 border-orange-500/30"
                     }`}
                   >
                     {novel.status.charAt(0).toUpperCase() +
@@ -1005,7 +1008,7 @@ export default function NovelDetailPage() {
                   {paginatedChapters.length > 0 ? (
                     paginatedChapters.map((chapter, index) => {
                       const isRead = progress?.chaptersRead.includes(
-                        chapter.number
+                        chapter.number,
                       );
                       const isCurrent =
                         progress?.currentChapter === chapter.number;
@@ -1018,15 +1021,15 @@ export default function NovelDetailPage() {
                           transition={{ delay: Math.min(index * 0.02, 0.3) }}
                           onClick={() =>
                             router.push(
-                              `/reader/${novel.slug}/${chapter.number}`
+                              `/reader/${novel.slug}/${chapter.number}`,
                             )
                           }
                           className={`w-full flex items-center gap-2.5 sm:gap-4 p-3 sm:p-4 rounded-xl border-2 transition-all group text-left overflow-hidden ${
                             isCurrent
                               ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
                               : isRead
-                              ? "border-border bg-card/30 hover:bg-card/50"
-                              : "border-border bg-card hover:border-primary/30 hover:shadow-md"
+                                ? "border-border bg-card/30 hover:bg-card/50"
+                                : "border-border bg-card hover:border-primary/30 hover:shadow-md"
                           }`}
                         >
                           {/* Chapter Number */}
@@ -1035,8 +1038,8 @@ export default function NovelDetailPage() {
                               isCurrent
                                 ? "bg-primary/10 text-primary"
                                 : isRead
-                                ? "bg-green-500/10 text-green-500"
-                                : "bg-secondary text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
+                                  ? "bg-green-500/10 text-green-500"
+                                  : "bg-secondary text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                             } transition-colors`}
                           >
                             {chapter.number}
@@ -1330,14 +1333,32 @@ export default function NovelDetailPage() {
               variant="primary"
               size="lg"
               onClick={handleStartReading}
-              className="flex-1 shadow-lg shadow-primary/25"
+              className="flex-1 shadow-lg shadow-primary/25 mb-4"
             >
               <FiBookOpen className="mr-2" />
               Start Reading
             </Button>
           )}
 
-          {libraryStatus.inLibrary ? (
+          {/* Library Status Button - Always visible */}
+          <Button
+            variant={libraryStatus.inLibrary ? "secondary" : "secondary"}
+            size="lg"
+            onClick={() => setShowStatusMenu(true)}
+            className="!px-4"
+            disabled={updatingStatus}
+          >
+            {updatingStatus ? (
+              <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : libraryStatus.inLibrary ? (
+              <FiCheck className="h-5 w-5 text-green-500" />
+            ) : (
+              <FiBookmark className="h-5 w-5" />
+            )}
+          </Button>
+
+          {/* Favorite Button - Only when in library */}
+          {libraryStatus.inLibrary && (
             <Button
               variant="ghost"
               size="lg"
@@ -1350,18 +1371,110 @@ export default function NovelDetailPage() {
                 }`}
               />
             </Button>
-          ) : (
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => setShowStatusMenu(true)}
-              className="!px-4"
-            >
-              <FiBookmark className="h-5 w-5" />
-            </Button>
           )}
         </div>
       </motion.div>
+
+      {/* Mobile Status Menu Modal */}
+      <AnimatePresence>
+        {showStatusMenu && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/50 z-[100]"
+              onClick={() => setShowStatusMenu(false)}
+            />
+            <motion.div
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="lg:hidden fixed bottom-0 left-0 right-0 bg-card border-t-2 border-border rounded-t-3xl z-[100] pb-safe overflow-hidden"
+            >
+              <div className="p-4">
+                {/* Handle bar */}
+                <div className="w-12 h-1.5 bg-border rounded-full mx-auto mb-4" />
+
+                <h3 className="text-lg font-bold mb-1">
+                  {libraryStatus.inLibrary ? "Change Status" : "Add to Library"}
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  {libraryStatus.inLibrary
+                    ? "Update your reading status for this novel"
+                    : "Choose your reading status"}
+                </p>
+
+                <div className="space-y-2">
+                  {[
+                    {
+                      value: "plan_to_read",
+                      label: "Plan to Read",
+                      icon: FiBookmark,
+                    },
+                    { value: "reading", label: "Reading", icon: FiBookOpen },
+                    { value: "completed", label: "Completed", icon: FiCheck },
+                    { value: "dropped", label: "Dropped", icon: FiX },
+                  ].map((option) => {
+                    const Icon = option.icon;
+                    const isActive = libraryStatus.status === option.value;
+
+                    return (
+                      <button
+                        key={option.value}
+                        onClick={() =>
+                          libraryStatus.inLibrary
+                            ? handleUpdateStatus(option.value)
+                            : handleAddToLibrary(option.value)
+                        }
+                        disabled={updatingStatus}
+                        className={`w-full px-4 py-4 rounded-xl text-left transition-all flex items-center gap-4 ${
+                          isActive
+                            ? "bg-primary/10 border-2 border-primary"
+                            : "bg-secondary/50 border-2 border-transparent hover:bg-secondary"
+                        }`}
+                      >
+                        <div
+                          className={`p-2 rounded-lg ${
+                            isActive ? "bg-primary/20" : "bg-secondary"
+                          }`}
+                        >
+                          <Icon
+                            className={`h-5 w-5 ${
+                              isActive
+                                ? "text-primary"
+                                : "text-muted-foreground"
+                            }`}
+                          />
+                        </div>
+                        <span
+                          className={`font-medium ${
+                            isActive ? "text-primary" : ""
+                          }`}
+                        >
+                          {option.label}
+                        </span>
+                        {isActive && (
+                          <FiCheck className="ml-auto h-5 w-5 text-primary" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Cancel button */}
+                <button
+                  onClick={() => setShowStatusMenu(false)}
+                  className="w-full mt-4 py-3 rounded-xl bg-secondary text-foreground font-medium"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </>
   );
 }

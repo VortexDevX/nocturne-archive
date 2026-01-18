@@ -12,6 +12,7 @@ import {
   FiPlay,
   FiInfo,
   FiBookmark,
+  FiBook,
 } from "react-icons/fi";
 import Button from "@/components/ui/Button";
 import { useHamburger } from "../layout";
@@ -92,8 +93,8 @@ export default function ContinuePage() {
             animate={{ scale: 1, opacity: 1 }}
             className="mb-6"
           >
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center text-5xl mb-4 mx-auto">
-              📚
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center mb-4 mx-auto">
+              <FiBook className="w-12 h-12 text-primary" />
             </div>
           </motion.div>
           <h3 className="text-2xl font-bold mb-2">No reading in progress</h3>
@@ -144,8 +145,8 @@ export default function ContinuePage() {
                   ? Math.round(
                       data.reduce(
                         (sum, item) => sum + item.progressPercent,
-                        0
-                      ) / data.length
+                        0,
+                      ) / data.length,
                     )
                   : 0
               }
@@ -234,8 +235,8 @@ function DesktopHeader({ count }: { count: string }) {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white text-2xl shadow-lg">
-                ⏱️
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white shadow-lg">
+                <FiClock className="w-6 h-6" />
               </div>
               Continue Reading
             </h1>
@@ -405,8 +406,8 @@ function NovelCard({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-4xl text-white">
-                  📖
+                <div className="w-full h-full flex items-center justify-center text-white">
+                  <FiBookOpen className="w-10 h-10" />
                 </div>
               )}
 

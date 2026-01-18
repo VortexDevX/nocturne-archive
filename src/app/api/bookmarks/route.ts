@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -42,16 +42,45 @@ export async function GET(request: NextRequest) {
     // Populate with novel details
     const bookmarksWithNovelData = await Promise.all(
       bookmarks.map(async (bookmark) => {
+        let novelTitle = "Unknown";
+        let novelAuthor = "Unknown";
+
+        // First try database
         const novel = await NovelModel.findOne({ slug: bookmark.novelId })
           .select("title author")
           .lean();
+
+        if (novel) {
+          novelTitle = novel.title;
+          novelAuthor = novel.author || "Unknown";
+        } else {
+          // Fallback to metadata file
+          try {
+            const fs = await import("fs").then((m) => m.promises);
+            const path = await import("path");
+            const metadataPath = path.join(
+              process.cwd(),
+              "data",
+              "novels",
+              bookmark.novelId,
+              "metadata.json",
+            );
+            const metadataContent = await fs.readFile(metadataPath, "utf-8");
+            const metadata = JSON.parse(metadataContent);
+            novelTitle = metadata.title || "Unknown";
+            novelAuthor = metadata.author || "Unknown";
+          } catch {
+            // If metadata file doesn't exist, keep Unknown
+          }
+        }
+
         return {
           ...bookmark,
           _id: bookmark._id.toString(),
-          novelTitle: novel?.title || "Unknown",
-          novelAuthor: novel?.author || "Unknown",
+          novelTitle,
+          novelAuthor,
         };
-      })
+      }),
     );
 
     return NextResponse.json({
@@ -63,7 +92,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching bookmarks:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch bookmarks" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -75,7 +104,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -94,7 +123,7 @@ export async function POST(request: NextRequest) {
     if (!novelId || !chapterNumber || !chapterTitle || position === undefined) {
       return NextResponse.json(
         { success: false, error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -121,7 +150,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating bookmark:", error);
     return NextResponse.json(
       { success: false, error: "Failed to create bookmark" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -133,7 +162,7 @@ export async function DELETE(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -143,7 +172,7 @@ export async function DELETE(request: NextRequest) {
     if (!bookmarkId) {
       return NextResponse.json(
         { success: false, error: "Bookmark ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -157,7 +186,7 @@ export async function DELETE(request: NextRequest) {
     if (!bookmark) {
       return NextResponse.json(
         { success: false, error: "Bookmark not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -169,7 +198,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error deleting bookmark:", error);
     return NextResponse.json(
       { success: false, error: "Failed to delete bookmark" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -181,7 +210,7 @@ export async function PATCH(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -191,7 +220,7 @@ export async function PATCH(request: NextRequest) {
     if (!bookmarkId) {
       return NextResponse.json(
         { success: false, error: "Bookmark ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -205,13 +234,13 @@ export async function PATCH(request: NextRequest) {
     const bookmark = await BookmarkModel.findOneAndUpdate(
       { _id: bookmarkId, userId: user.userId },
       updateData,
-      { new: true }
+      { new: true },
     );
 
     if (!bookmark) {
       return NextResponse.json(
         { success: false, error: "Bookmark not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -224,7 +253,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Error updating bookmark:", error);
     return NextResponse.json(
       { success: false, error: "Failed to update bookmark" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

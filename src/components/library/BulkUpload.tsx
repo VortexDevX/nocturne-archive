@@ -10,6 +10,7 @@ import {
   FiTrash2,
   FiPlus,
   FiEdit2,
+  FiInfo,
 } from "react-icons/fi";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -48,7 +49,7 @@ export default function BulkUpload() {
   const [description, setDescription] = useState("");
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [status, setStatus] = useState<"ongoing" | "completed" | "hiatus">(
-    "ongoing"
+    "ongoing",
   );
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -75,7 +76,7 @@ export default function BulkUpload() {
 
   const handleFolderSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []).filter(
-      (f) => f.name.endsWith(".txt") || f.name.endsWith(".md")
+      (f) => f.name.endsWith(".txt") || f.name.endsWith(".md"),
     );
 
     // Sort files by name
@@ -104,7 +105,7 @@ export default function BulkUpload() {
 
   const toggleGenre = (genre: string) => {
     setSelectedGenres((prev) =>
-      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre],
     );
   };
 
@@ -172,8 +173,8 @@ export default function BulkUpload() {
   const handleTitleEdit = (chapterNumber: number, newTitle: string) => {
     setPreviewChapters((prev) =>
       prev.map((ch) =>
-        ch.number === chapterNumber ? { ...ch, title: newTitle } : ch
-      )
+        ch.number === chapterNumber ? { ...ch, title: newTitle } : ch,
+      ),
     );
   };
 
@@ -187,10 +188,13 @@ export default function BulkUpload() {
         formData.append("chapters", file);
       });
 
-      const titlesData = previewChapters.reduce((acc, ch) => {
-        acc[ch.number] = ch.title;
-        return acc;
-      }, {} as Record<number, string>);
+      const titlesData = previewChapters.reduce(
+        (acc, ch) => {
+          acc[ch.number] = ch.title;
+          return acc;
+        },
+        {} as Record<number, string>,
+      );
 
       formData.append("titles", JSON.stringify(titlesData));
 
@@ -533,8 +537,9 @@ export default function BulkUpload() {
               </button>
             )}
 
-            <div className="mt-4 text-xs text-muted-foreground">
-              ℹ️ If not provided, titles will be extracted from chapter content
+            <div className="mt-4 text-xs text-muted-foreground flex items-center gap-1">
+              <FiInfo className="w-3 h-3" /> If not provided, titles will be
+              extracted from chapter content
             </div>
           </div>
 
