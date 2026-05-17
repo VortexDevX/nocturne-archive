@@ -32,20 +32,21 @@ export async function middleware(request: NextRequest) {
     }
     const isUsersRoute = pathname.startsWith("/admin/users");
     const isUploadRoute = pathname.startsWith("/admin/upload");
+    const isDev = process.env.NODE_ENV === "development";
 
     if (isUsersRoute) {
-      // Only admins can manage users
-      if (!session.isAdmin) {
+      // Only admins can manage users (allow in dev)
+      if (!session.isAdmin && !isDev) {
         return NextResponse.redirect(new URL("/library", request.url));
       }
     } else if (isUploadRoute) {
-      // Admins or canUpload users can access upload
-      if (!(session.isAdmin || session.canUpload)) {
+      // Admins or canUpload users can access upload (allow all in dev)
+      if (!(session.isAdmin || session.canUpload) && !isDev) {
         return NextResponse.redirect(new URL("/library", request.url));
       }
     } else {
-      // Default: admin-only for other /admin routes
-      if (!session.isAdmin) {
+      // Default: admin-only for other /admin routes (allow in dev)
+      if (!session.isAdmin && !isDev) {
         return NextResponse.redirect(new URL("/library", request.url));
       }
     }
