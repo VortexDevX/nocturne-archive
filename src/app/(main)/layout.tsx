@@ -6,7 +6,6 @@ import BottomNav from "@/components/layout/BottomNav";
 import { FiX } from "react-icons/fi";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/authStore";
 import {
   FiBook,
   FiClock,
@@ -15,7 +14,6 @@ import {
   FiSettings,
   FiLogOut,
   FiCompass,
-  FiArchive,
   FiGrid,
 } from "react-icons/fi";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";

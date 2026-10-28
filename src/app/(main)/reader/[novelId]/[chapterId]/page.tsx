@@ -23,7 +23,7 @@ import {
   FiDroplet,
 } from "react-icons/fi";
 import { useTheme } from "@/components/providers/ThemeProvider";
-import { useReaderStore } from "@/store/readerStore";
+import { useReaderStore, type ReaderFont } from "@/store/readerStore";
 import BookmarkModal from "@/components/reader/BookmarkModal";
 import {
   getChapterOffline,
@@ -164,7 +164,7 @@ function VirtualChapterList({
     }
   }, []);
 
-  const { visibleItems, totalHeight, offsetY, onScroll, startIndex } =
+  const { visibleItems, totalHeight, offsetY, onScroll } =
     useVirtualList(chapters, ITEM_HEIGHT, containerHeight);
 
   // Auto-scroll to current chapter
@@ -176,6 +176,7 @@ function VirtualChapterList({
       containerRef.current.scrollTop =
         currentIndex * ITEM_HEIGHT - containerHeight / 2;
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (chapters.length === 0) {
@@ -197,7 +198,7 @@ function VirtualChapterList({
     >
       <div style={{ height: totalHeight, position: "relative" }}>
         <div style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleItems.map((ch, idx) => {
+          {visibleItems.map((ch) => {
             const isCurrent = ch.number === currentChapter;
             return (
               <div
@@ -572,6 +573,7 @@ export default function ReaderPage() {
       el?.removeEventListener("touchstart", handleTouchStart);
       el?.removeEventListener("touchend", handleTouchEnd);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapterId, novel, novelId]);
 
   // Navigation
@@ -1123,7 +1125,7 @@ export default function ReaderPage() {
                           key={font.value}
                           whileHover={{ scale: 1.03 }}
                           whileTap={{ scale: 0.97 }}
-                          onClick={() => setFontFamily(font.value as any)}
+                          onClick={() => setFontFamily(font.value as ReaderFont)}
                           className={`p-4 rounded-xl border-2 transition-all ${
                             fontFamily === font.value
                               ? "border-primary bg-primary/10 ring-2 ring-primary/20"

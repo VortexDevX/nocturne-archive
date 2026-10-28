@@ -104,13 +104,13 @@ export async function PATCH(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Update user error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to update user",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
       { status: 500 }
     );

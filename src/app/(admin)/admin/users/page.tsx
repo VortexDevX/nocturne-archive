@@ -38,7 +38,7 @@ export default function AdminUsersPage() {
       } else {
         toast.error(data.message || "Failed to load users");
       }
-    } catch (e) {
+    } catch {
       toast.error("Failed to load users");
     } finally {
       setLoading(false);

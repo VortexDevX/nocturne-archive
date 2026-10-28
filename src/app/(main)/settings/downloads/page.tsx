@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import Button from "@/components/ui/Button";
 import {
   getNovelCacheInfo,
@@ -56,7 +57,7 @@ export default function DownloadsManagerPage() {
       const res = await fetch("/api/library");
       const data = await res.json();
       if (data.success) {
-        const list: LibraryItem[] = data.data.map((x: any) => ({
+        const list: LibraryItem[] = data.data.map((x: LibraryItem) => ({
           novel: x.novel,
           novelId: x.novelId,
         }));
@@ -323,12 +324,15 @@ export default function DownloadsManagerPage() {
                 <div className="flex flex-col sm:flex-row gap-4 p-4">
                   {/* Cover Image */}
                   <div className="flex-shrink-0">
-                    <div className="w-20 h-28 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-purple-500/20 border border-border shadow-md">
+                    <div className="relative w-20 h-28 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-purple-500/20 border border-border shadow-md">
                       {item.novel.coverImage ? (
-                        <img
+                        <Image
                           src={item.novel.coverImage}
                           alt={item.novel.title}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                          sizes="80px"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

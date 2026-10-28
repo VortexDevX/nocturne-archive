@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiSun, FiMoon, FiMonitor, FiZapOff } from "react-icons/fi";
-import toast from "react-hot-toast";
 
 const themes = [
   { value: "light", label: "Light", icon: FiSun },

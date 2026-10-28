@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiBookmark,
@@ -9,12 +9,9 @@ import {
   FiBookOpen,
   FiMessageSquare,
   FiClock,
-  FiFileText,
-  FiEdit2,
   FiMoreVertical,
   FiTag,
   FiSearch,
-  FiX,
 } from "react-icons/fi";
 import { useHamburger } from "../layout";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
@@ -33,11 +30,7 @@ export default function BookmarksPage() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBookmarks();
-  }, [activeFilter]);
-
-  const fetchBookmarks = async () => {
+  const fetchBookmarks = useCallback(async () => {
     try {
       setLoading(true);
       const url =
@@ -57,7 +50,11 @@ export default function BookmarksPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeFilter]);
+
+  useEffect(() => {
+    fetchBookmarks();
+  }, [fetchBookmarks]);
 
   const handleDeleteBookmark = async (bookmarkId: string) => {
     if (!confirm("Are you sure you want to delete this bookmark?")) return;

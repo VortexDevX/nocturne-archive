@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
 
     await connectDB();
 
-    let query: any = { userId: user.userId };
+    const query: Record<string, unknown> = { userId: user.userId };
 
     if (status && status !== "all") {
       query.status = status;
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
               if (chapters.length > 0) {
                 totalChapters = chapters.length;
               }
-            } catch (err) {
+            } catch {
               console.log(`Could not read chapters.json for ${item.novelId}`);
             }
 
@@ -244,7 +244,7 @@ export async function PATCH(request: NextRequest) {
 
     await connectDB();
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (status !== undefined) {
       updateData.status = status;
       updateData.lastStatusChange = new Date();

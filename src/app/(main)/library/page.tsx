@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiGrid,
@@ -12,10 +13,8 @@ import {
   FiChevronDown,
   FiMoreVertical,
   FiHeart,
-  FiStar,
   FiBookOpen,
   FiCalendar,
-  FiClock,
   FiX,
   FiTrash2,
   FiBook,
@@ -761,10 +760,13 @@ function NovelCard({
           }`}
         >
           {item.novel.coverImage ? (
-            <img
+            <Image
               src={item.novel.coverImage}
               alt={item.novel.title}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              unoptimized
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             />
           ) : (
             <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-white text-center">
@@ -951,10 +953,13 @@ function NovelListItem({
         }`}
       >
         {item.novel.coverImage ? (
-          <img
+          <Image
             src={item.novel.coverImage}
             alt={item.novel.title}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
+            sizes="(max-width: 1024px) 64px, 80px"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-3xl">

@@ -43,6 +43,10 @@ next-env.d.ts
 # User uploads
 data/
 
+# PWA service worker build artifacts
+public/sw.js
+public/workbox-*.js
+
 Overview.md
 structure.md
 .agents

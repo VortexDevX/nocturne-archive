@@ -70,9 +70,6 @@ export async function POST(request: NextRequest) {
       const wordCount = countWords(content);
       if (wordCount < 10) continue;
 
-      const originalName = file.name.split("/").pop() || file.name;
-      const cleanName = originalName.split("\\").pop() || originalName;
-
       const chapterNumber = existingChapters.length + newChapters.length + 1;
       const chapterTitle =
         titlesMap[chapterNumber] || `Chapter ${chapterNumber}`;
@@ -107,13 +104,13 @@ export async function POST(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Chapter upload error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to upload chapters",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Failed to upload chapters",
       } as ApiResponse,
       { status: 500 }
     );

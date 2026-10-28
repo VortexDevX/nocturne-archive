@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
           Object.keys(titlesMap).length,
           "custom titles\n"
         );
-      } catch (error) {
+      } catch {
         console.error("⚠️  Failed to parse titles\n");
       }
     }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     const fileType = file.type;
     const fileName = file.name.toLowerCase();
     let parsedChapters: Array<{ number: number; content: string }> = [];
-    let parseErrors: string[] = [];
+    const parseErrors: string[] = [];
 
     if (
       fileType === "text/plain" ||
@@ -161,16 +161,19 @@ export async function POST(request: NextRequest) {
       },
       message: `Successfully parsed and uploaded ${newChapters.length} chapters`,
     } as ApiResponse);
-  } catch (error: any) {
-    console.error("❌ API Error:", error.message);
-    console.error(error.stack);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to parse file";
+    console.error("❌ API Error:", message);
+    if (error instanceof Error && error.stack) {
+      console.error(error.stack);
+    }
     console.log("=== END (ERROR) ===\n");
 
     return NextResponse.json(
       {
         success: false,
         message: "Failed to parse file",
-        error: error.message,
+        error: message,
       } as ApiResponse,
       { status: 500 }
     );

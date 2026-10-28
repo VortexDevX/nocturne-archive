@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import {
   getNovelFolders,
@@ -7,7 +7,7 @@ import {
 } from "@/lib/utils/fileSystem";
 import type { ApiResponse } from "@/types";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getSession();
     if (!session) {
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
             }`,
           });
         }
-      } catch (error) {
+      } catch {
         // Skip novels without proper metadata
         console.log(`Skipping novel folder without metadata: ${folder}`);
       }
@@ -48,13 +48,13 @@ export async function GET(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("List novels error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to list novels",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Failed to list novels",
       } as ApiResponse,
       { status: 500 }
     );

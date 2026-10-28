@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   FiSearch,
@@ -94,7 +95,6 @@ const quickFilters = [
 ];
 
 export default function ExplorePage() {
-  const router = useRouter();
   const [selectedGenre, setSelectedGenre] = useState("all");
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -429,10 +429,13 @@ function NovelCard({
           }`}
         >
           {novel.coverImage ? (
-            <img
+            <Image
               src={novel.coverImage}
               alt={novel.title}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
+              unoptimized
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
             />
           ) : (
             <div className="absolute inset-0 flex items-center justify-center opacity-60">

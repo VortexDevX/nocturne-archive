@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import {
   FiImage,
@@ -335,10 +336,13 @@ export default function ManualUpload() {
 
                 {coverPreview ? (
                   <div className="relative w-32 h-48 rounded-lg overflow-hidden border border-border">
-                    <img
+                    <Image
                       src={coverPreview}
                       alt="Cover preview"
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      sizes="128px"
                     />
                     <button
                       onClick={() => {
@@ -390,7 +394,9 @@ export default function ManualUpload() {
               {["ongoing", "completed", "hiatus"].map((s) => (
                 <button
                   key={s}
-                  onClick={() => setStatus(s as any)}
+                  onClick={() =>
+                    setStatus(s as "ongoing" | "completed" | "hiatus")
+                  }
                   className={`flex-1 px-4 py-3 rounded-lg text-sm font-medium transition-all ${
                     status === s
                       ? "bg-primary text-primary-foreground"

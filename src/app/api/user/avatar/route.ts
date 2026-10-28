@@ -52,8 +52,18 @@ export async function POST(request: NextRequest) {
       await mkdir(uploadDir, { recursive: true });
     }
 
-    // Generate unique filename
-    const ext = path.extname(file.name);
+    // Generate unique filename with validated extension
+    const ext = path.extname(file.name).toLowerCase();
+    const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+    if (!allowedExtensions.includes(ext)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Invalid avatar format. Allowed formats: jpg, jpeg, png, webp",
+        } as ApiResponse,
+        { status: 400 }
+      );
+    }
     const filename = `${session.userId}-${Date.now()}${ext}`;
     const filepath = path.join(uploadDir, filename);
 
@@ -78,13 +88,13 @@ export async function POST(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Avatar upload error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to upload avatar",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
       { status: 500 }
     );

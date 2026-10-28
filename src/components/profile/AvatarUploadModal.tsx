@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { FiUpload, FiImage, FiFolder } from "react-icons/fi";
@@ -21,7 +22,7 @@ export default function AvatarUploadModal({
   const [uploading, setUploading] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { setUser, user } = useAuthStore();
+  const { setUser } = useAuthStore();
 
   const handleFileChange = (selectedFile: File) => {
     if (!selectedFile.type.startsWith("image/")) {
@@ -127,11 +128,16 @@ export default function AvatarUploadModal({
 
           {preview ? (
             <div className="flex flex-col items-center">
-              <img
-                src={preview}
-                alt="Preview"
-                className="w-32 h-32 rounded-full object-cover border-4 border-border mb-4"
-              />
+              <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-border mb-4">
+                <Image
+                  src={preview}
+                  alt="Preview"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  sizes="128px"
+                />
+              </div>
               <p className="text-sm text-muted-foreground mb-4 font-medium">
                 {file?.name}
               </p>

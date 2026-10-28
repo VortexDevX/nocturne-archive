@@ -84,15 +84,14 @@ const config = withPWA({
       },
     },
     {
-      urlPattern: /\/api\/.*$/i,
-      handler: "NetworkFirst",
+      urlPattern: /\/api\/(?:novels\/cover|user\/avatar)\/.*$/i,
+      handler: "StaleWhileRevalidate",
       options: {
-        cacheName: "apis",
+        cacheName: "api-media-assets",
         expiration: {
-          maxEntries: 16,
-          maxAgeSeconds: 24 * 60 * 60, // 24 hours
+          maxEntries: 64,
+          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
         },
-        networkTimeoutSeconds: 10,
       },
     },
   ],

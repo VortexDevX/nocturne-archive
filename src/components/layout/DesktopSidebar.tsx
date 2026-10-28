@@ -84,7 +84,7 @@ export default function DesktopSidebar() {
 
         // Set currently reading list (top 2 novels)
         if (data.data) {
-          const novels = data.data.slice(0, 2).map((item: any) => ({
+          const novels = data.data.slice(0, 2).map((item: CurrentlyReadingNovel) => ({
             novelId: item.novelId,
             title: item.title,
             coverImage: item.coverImage,
@@ -365,12 +365,15 @@ export default function DesktopSidebar() {
                   {/* Avatar */}
                   <div className="relative flex-shrink-0">
                     <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-purple-600 p-0.5">
-                      <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+                      <div className="relative w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                         {userProfile.avatar ? (
-                          <img
+                          <Image
                             src={userProfile.avatar}
                             alt={userProfile.username}
-                            className="w-full h-full object-cover"
+                            fill
+                            className="object-cover"
+                            unoptimized
+                            sizes="44px"
                           />
                         ) : (
                           <FiUser className="h-5 w-5 text-primary" />
@@ -415,12 +418,15 @@ export default function DesktopSidebar() {
               >
                 <div className="relative">
                   <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary to-purple-600 p-0.5">
-                    <div className="w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
+                    <div className="relative w-full h-full rounded-full bg-background flex items-center justify-center overflow-hidden">
                       {userProfile.avatar ? (
-                        <img
+                        <Image
                           src={userProfile.avatar}
                           alt={userProfile.username}
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
+                          unoptimized
+                          sizes="44px"
                         />
                       ) : (
                         <FiUser className="h-5 w-5 text-primary" />
@@ -532,10 +538,13 @@ function CurrentlyReadingCard({
       {/* Cover Image */}
       <div className="relative flex-shrink-0 w-12 h-16 rounded-md overflow-hidden bg-gradient-to-br from-primary/20 to-purple-500/20 shadow-md">
         {novel.coverImage ? (
-          <img
+          <Image
             src={novel.coverImage}
             alt={novel.title}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
+            sizes="48px"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

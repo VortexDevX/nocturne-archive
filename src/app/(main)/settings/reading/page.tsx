@@ -94,8 +94,9 @@ export default function ReadingSettingsPage() {
       setPrefs(data.data);
       setLastSaved(new Date());
       toast.success("Saved!", { duration: 1500 });
-    } catch (e: any) {
-      toast.error(e.message || "Failed to save");
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Failed to save";
+      toast.error(message);
     } finally {
       setAutoSaving(false);
     }

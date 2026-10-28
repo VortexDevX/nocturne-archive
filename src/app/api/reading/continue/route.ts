@@ -135,9 +135,9 @@ export async function GET(request: NextRequest) {
 
           // Find current chapter title
           const currentChapter = chapters.find(
-            (ch: any) => ch.number === progress.currentChapter
+            (ch: { number?: number; title?: string }) => ch.number === progress.currentChapter
           );
-          if (currentChapter) {
+          if (currentChapter?.title) {
             currentChapterTitle = currentChapter.title;
           }
         } catch (error) {

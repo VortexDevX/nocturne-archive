@@ -21,9 +21,15 @@ export const useAuthStore = create<AuthState>((set) => ({
       isLoading: false,
     }),
   setLoading: (loading) => set({ isLoading: loading }),
-  logout: () =>
+  logout: () => {
+    try {
+      fetch("/api/auth/logout", { method: "POST" });
+    } catch {
+      // ignore network errors
+    }
     set({
       user: null,
       isAuthenticated: false,
-    }),
+    });
+  },
 }));

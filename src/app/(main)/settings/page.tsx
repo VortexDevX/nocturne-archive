@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { motion } from "framer-motion";
@@ -78,6 +79,7 @@ export default function SettingsPage() {
     fetchUserData();
     fetchPreferences();
     fetchLibraryCount();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUserData = async () => {
@@ -131,8 +133,10 @@ export default function SettingsPage() {
       if (!data.success) throw new Error(data.message || "Update failed");
       setPrefs(data.data);
       return true;
-    } catch (e: any) {
-      toast.error(e.message || "Failed to update preferences");
+    } catch (e: unknown) {
+      const message =
+        e instanceof Error ? e.message : "Failed to update preferences";
+      toast.error(message);
       return false;
     }
   };
@@ -207,11 +211,16 @@ export default function SettingsPage() {
                 <div className="relative flex-shrink-0">
                   <div className="absolute inset-0 bg-gradient-to-br from-primary to-purple-600 rounded-full blur-lg opacity-50" />
                   {user?.profilePicture ? (
-                    <img
-                      src={user.profilePicture}
-                      alt={user.username}
-                      className="relative h-24 w-24 rounded-full object-cover ring-4 ring-background"
-                    />
+                    <div className="relative h-24 w-24 rounded-full overflow-hidden ring-4 ring-background">
+                      <Image
+                        src={user.profilePicture}
+                        alt={user.username}
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        sizes="96px"
+                      />
+                    </div>
                   ) : (
                     <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-3xl ring-4 ring-background">
                       {user?.username?.charAt(0).toUpperCase() || "U"}
@@ -373,7 +382,9 @@ export default function SettingsPage() {
                     key={key}
                     whileHover={{ scale: 1.02, y: -2 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleTheme(key as any)}
+                    onClick={() =>
+                      handleTheme(key as UserPreferences["theme"])
+                    }
                     className={`relative p-4 rounded-xl border-2 transition-all ${
                       isActive
                         ? "border-primary ring-4 ring-primary/20 shadow-lg"

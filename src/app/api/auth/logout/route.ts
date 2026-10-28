@@ -13,13 +13,13 @@ export async function POST() {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Logout error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Internal server error",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal server error",
       } as ApiResponse,
       { status: 500 }
     );

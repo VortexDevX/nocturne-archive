@@ -4,11 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { FiBook } from "react-icons/fi";
-import { useAuthStore } from "@/store/authStore";
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
     // Check authentication and redirect
@@ -22,7 +20,7 @@ export default function Home() {
         } else {
           router.push("/login");
         }
-      } catch (error) {
+      } catch {
         router.push("/login");
       }
     };

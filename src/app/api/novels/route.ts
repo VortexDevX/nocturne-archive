@@ -14,7 +14,7 @@ import type { ApiResponse } from "@/types";
  * GET /api/novels
  * List all novels (from database + file system)
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const session = await getSession();
     if (!session) {
@@ -70,13 +70,13 @@ export async function GET(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get novels error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to get novels",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Failed to get novels",
       } as ApiResponse,
       { status: 500 }
     );
@@ -137,13 +137,13 @@ export async function POST(request: NextRequest) {
       } as ApiResponse,
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Create novel error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to create novel",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Failed to create novel",
       } as ApiResponse,
       { status: 500 }
     );

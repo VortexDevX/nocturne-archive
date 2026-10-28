@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
 import { FiShield, FiUpload, FiUsers, FiArrowLeft } from "react-icons/fi";
 

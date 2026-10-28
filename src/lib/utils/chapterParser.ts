@@ -29,7 +29,6 @@ export function parseChaptersFromText(text: string): ParsedChapter[] {
     },
   ];
 
-  let usedPattern: RegExp | null = null;
   let matches: RegExpMatchArray[] = [];
 
   for (const { regex } of patterns) {
@@ -38,7 +37,6 @@ export function parseChaptersFromText(text: string): ParsedChapter[] {
 
     if (testMatches.length > matches.length) {
       matches = testMatches;
-      usedPattern = globalRegex;
     }
   }
 
@@ -54,7 +52,7 @@ export function parseChaptersFromText(text: string): ParsedChapter[] {
         ? matches[i + 1].index || text.length
         : text.length;
 
-    let chapterText = text.substring(start, end).trim();
+    const chapterText = text.substring(start, end).trim();
 
     const wordCount = chapterText
       .split(/\s+/)

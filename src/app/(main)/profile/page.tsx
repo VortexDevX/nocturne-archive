@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useAuthStore } from "@/store/authStore";
 import { motion } from "framer-motion";
 import {
@@ -15,7 +16,6 @@ import {
   FiTrendingUp,
   FiAward,
   FiZap,
-  FiTarget,
 } from "react-icons/fi";
 import { UserStats } from "@/types";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
@@ -43,6 +43,7 @@ export default function ProfilePage() {
   useEffect(() => {
     fetchUserData();
     fetchUserStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchUserData = async () => {
@@ -99,7 +100,7 @@ export default function ProfilePage() {
       await fetch("/api/auth/logout", { method: "POST" });
       toast.success("Logged out successfully");
       router.push("/login");
-    } catch (error) {
+    } catch {
       toast.error("Failed to logout");
     }
   };
@@ -150,12 +151,15 @@ export default function ProfilePage() {
               <div className="flex flex-col sm:flex-row items-center gap-6">
                 {/* Avatar */}
                 <div className="relative group">
-                  <div className="w-28 h-28 lg:w-36 lg:h-36 rounded-full ring-4 ring-border overflow-hidden">
+                  <div className="relative w-28 h-28 lg:w-36 lg:h-36 rounded-full ring-4 ring-border overflow-hidden">
                     {user?.profilePicture ? (
-                      <img
+                      <Image
                         src={user.profilePicture}
                         alt={user.username}
-                        className="w-full h-full object-cover"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                        sizes="(max-width: 1024px) 112px, 144px"
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-5xl lg:text-6xl">
@@ -331,7 +335,7 @@ export default function ProfilePage() {
               </h2>
               <div className="bg-card rounded-2xl border-2 border-border p-5">
                 <div className="flex flex-wrap gap-3">
-                  {stats.favoriteGenres.map((genre, index) => (
+                  {stats.favoriteGenres.map((genre) => (
                     <div
                       key={genre.genre}
                       className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/10 border-2 border-primary/20"

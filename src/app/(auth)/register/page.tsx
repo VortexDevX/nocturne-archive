@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -34,7 +33,6 @@ const registerSchema = z
   });
 
 export default function RegisterPage() {
-  const router = useRouter();
   const { setUser } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,7 +67,7 @@ export default function RegisterPage() {
         toast.error(result.message || "Registration failed");
         setIsLoading(false);
       }
-    } catch (error) {
+    } catch {
       toast.error("Something went wrong. Please try again.");
       setIsLoading(false);
     }

@@ -72,7 +72,17 @@ export async function POST(request: NextRequest) {
     let coverFilename = "cover.jpg";
     const coverFile = formData.get("cover") as File | null;
     if (coverFile) {
-      const ext = path.extname(coverFile.name);
+      const ext = path.extname(coverFile.name).toLowerCase();
+      const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+      if (!allowedExtensions.includes(ext)) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "Invalid cover image type. Allowed: jpg, jpeg, png, webp",
+          } as ApiResponse,
+          { status: 400 }
+        );
+      }
       coverFilename = `cover${ext}`;
       const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
       const coverPath = path.join(
@@ -126,13 +136,13 @@ export async function POST(request: NextRequest) {
       } as ApiResponse,
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Novel upload error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to upload novel",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
       { status: 500 }
     );

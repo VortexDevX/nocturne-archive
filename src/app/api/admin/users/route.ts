@@ -17,15 +17,17 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     const { searchParams } = new URL(request.url);
-    const q = searchParams.get("q") || "";
+    const rawQ = (searchParams.get("q") || "").trim();
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
 
-    const filter = q
+    const safeQ = rawQ.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+    const filter = safeQ
       ? {
           $or: [
-            { username: { $regex: q, $options: "i" } },
-            { email: { $regex: q, $options: "i" } },
+            { username: { $regex: safeQ, $options: "i" } },
+            { email: { $regex: safeQ, $options: "i" } },
           ],
         }
       : {};
@@ -44,13 +46,13 @@ export async function GET(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Admin users list error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to fetch users",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal error",
       } as ApiResponse,
       { status: 500 }
     );
@@ -98,7 +100,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const update: any = {};
+    const update: Record<string, boolean> = {};
     if (typeof canUpload === "boolean") update.canUpload = canUpload;
     if (typeof isAdmin === "boolean") update.isAdmin = isAdmin;
 
@@ -123,13 +125,13 @@ export async function PATCH(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Admin users update error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to update user",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal error",
       } as ApiResponse,
       { status: 500 }
     );

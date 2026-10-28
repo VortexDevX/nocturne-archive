@@ -3,7 +3,7 @@ import connectDB from "@/lib/db/mongodb";
 import UserModel from "@/lib/db/models/User";
 import { comparePassword } from "@/lib/auth/password";
 import { signToken, getUserFromToken } from "@/lib/auth/jwt";
-import type { AuthResponse, LoginFormData } from "@/types";
+import type { AuthResponse, LoginFormData, User } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
@@ -57,7 +57,9 @@ export async function POST(req: NextRequest) {
       isAdmin: !!userObject.isAdmin, // NEW
     };
 
-    const token = await signToken(getUserFromToken(userPayload as any));
+    const token = await signToken(
+      getUserFromToken(userPayload as unknown as Partial<User>)
+    );
 
     const response = NextResponse.json(
       {
@@ -78,13 +80,13 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Login error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Internal server error",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal server error",
       } as AuthResponse,
       { status: 500 }
     );

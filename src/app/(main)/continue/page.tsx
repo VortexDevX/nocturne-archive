@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { motion } from "framer-motion";
 import {
   FiClock,
   FiBookOpen,
@@ -11,7 +12,6 @@ import {
   FiCheckCircle,
   FiPlay,
   FiInfo,
-  FiBookmark,
   FiBook,
 } from "react-icons/fi";
 import Button from "@/components/ui/Button";
@@ -400,10 +400,13 @@ function NovelCard({
               }`}
             >
               {item.coverImage ? (
-                <img
+                <Image
                   src={item.coverImage}
                   alt={item.title}
-                  className="w-full h-full object-cover"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                  sizes="(max-width: 1024px) 96px, 112px"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-white">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, useRef } from "react";
+import Image from "next/image";
 import { useRouter, useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -87,6 +88,7 @@ export default function NovelDetailPage() {
     fetchNovel();
     fetchProgress();
     checkLibraryStatus();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   const fetchNovel = async () => {
@@ -486,12 +488,15 @@ export default function NovelDetailPage() {
                 animate={{ opacity: 1, scale: 1 }}
                 className="flex-shrink-0"
               >
-                <div className="w-32 sm:w-40 lg:w-52 aspect-[2/3] rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl border-2 border-border mx-auto lg:mx-0 ring-1 ring-white/10">
+                <div className="relative w-32 sm:w-40 lg:w-52 aspect-[2/3] rounded-xl lg:rounded-2xl overflow-hidden shadow-2xl border-2 border-border mx-auto lg:mx-0 ring-1 ring-white/10">
                   {novel.coverImage ? (
-                    <img
+                    <Image
                       src={novel.coverImage}
                       alt={novel.title}
-                      className="w-full h-full object-cover"
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 208px"
                     />
                   ) : (
                     <div className="w-full h-full bg-gradient-to-br from-primary/20 via-purple-500/20 to-pink-500/20 flex items-center justify-center">

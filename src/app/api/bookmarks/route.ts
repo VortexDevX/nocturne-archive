@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const novelId = searchParams.get("novelId");
     const filter = searchParams.get("filter"); // "all", "notes", "quotes", "recent"
 
-    let query: any = { userId: user.userId };
+    const query: Record<string, unknown> = { userId: user.userId };
 
     if (novelId) {
       query.novelId = novelId;
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       query.selectedText = { $exists: true, $ne: "" };
     }
 
-    let bookmarks = await BookmarkModel.find(query)
+    const bookmarks = await BookmarkModel.find(query)
       .sort({ createdAt: -1 })
       .limit(filter === "recent" ? 10 : 100)
       .lean();
@@ -226,7 +226,7 @@ export async function PATCH(request: NextRequest) {
 
     await connectDB();
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (note !== undefined) updateData.note = note;
     if (tags !== undefined) updateData.tags = tags;
     if (color !== undefined) updateData.color = color;

@@ -61,13 +61,13 @@ export async function GET(
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Get chapter error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to get chapter",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
       { status: 500 }
     );

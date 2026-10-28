@@ -95,7 +95,19 @@ export default function AdminUploadPage() {
   );
 }
 
-function MethodCard({ method, index, onClick }: any) {
+interface MethodCardProps {
+  method: {
+    id: string;
+    title: string;
+    description: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+  };
+  index: number;
+  onClick: () => void;
+}
+
+function MethodCard({ method, index, onClick }: MethodCardProps) {
   const Icon = method.icon;
   return (
     <motion.button

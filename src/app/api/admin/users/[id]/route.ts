@@ -67,13 +67,13 @@ export async function PATCH(
       { success: true, data: updated, message: "User updated" } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Admin update user error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Internal server error",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal error",
       } as ApiResponse,
       { status: 500 }
     );

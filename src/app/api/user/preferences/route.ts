@@ -39,13 +39,13 @@ export async function GET() {
     return NextResponse.json({ success: true, data: prefs } as ApiResponse, {
       status: 200,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Preferences GET error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to load preferences",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
       { status: 500 }
     );
@@ -63,7 +63,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const update: Record<string, any> = {};
+    const update: Record<string, unknown> = {};
 
     for (const key of Object.keys(body)) {
       if (ALLOWED_FIELDS.has(key)) {
@@ -87,13 +87,13 @@ export async function PUT(request: NextRequest) {
       } as ApiResponse,
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Preferences PUT error:", error);
     return NextResponse.json(
       {
         success: false,
         message: "Failed to update preferences",
-        error: error.message,
+        error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
       { status: 500 }
     );

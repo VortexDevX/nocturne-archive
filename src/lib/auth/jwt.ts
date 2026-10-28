@@ -1,17 +1,21 @@
-import { SignJWT, jwtVerify } from "jose";
+import { SignJWT } from "jose/jwt/sign";
+import { jwtVerify } from "jose/jwt/verify";
 import { User } from "@/types";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "fallback-secret-key-change-in-production"
-);
+const rawSecret = process.env.JWT_SECRET;
+if (!rawSecret) {
+  throw new Error("FATAL: JWT_SECRET environment variable is not defined");
+}
+
+const JWT_SECRET = new TextEncoder().encode(rawSecret);
 
 export interface CustomJWTPayload {
   userId: string;
   email: string;
   username: string;
-  isAdmin?: boolean; // NEW
-  canUpload?: boolean; // NEW
-  [key: string]: any;
+  isAdmin?: boolean;
+  canUpload?: boolean;
+  [key: string]: unknown;
 }
 
 export async function signToken(payload: CustomJWTPayload): Promise<string> {
@@ -50,7 +54,7 @@ export function getUserFromToken(user: Partial<User>): CustomJWTPayload {
     userId,
     email: user.email!,
     username: user.username!,
-    isAdmin: Boolean((user as any).isAdmin),
-    canUpload: Boolean((user as any).canUpload),
+    isAdmin: Boolean((user as Record<string, unknown>).isAdmin),
+    canUpload: Boolean((user as Record<string, unknown>).canUpload),
   };
 }

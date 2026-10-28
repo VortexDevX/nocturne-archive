@@ -14,7 +14,7 @@ export function extractChapterTitle(
 
   if (lines.length === 0) return `Chapter ${chapterNumber}`;
 
-  let titleLines: string[] = [];
+  const titleLines: string[] = [];
   let foundIndex = -1;
 
   // 🔍 Find the line that clearly begins a chapter

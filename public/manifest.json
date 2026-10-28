@@ -6,7 +6,7 @@
   "display": "standalone",
   "background_color": "#0a0a0a",
   "theme_color": "#8b5cf6",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -34,7 +34,7 @@
       "name": "Continue Reading",
       "short_name": "Continue",
       "description": "Continue reading",
-      "url": "/library",
+      "url": "/continue",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
