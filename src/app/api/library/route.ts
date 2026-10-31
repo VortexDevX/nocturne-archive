@@ -3,8 +3,13 @@ import { verifyAuth } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
 import UserLibraryModel from "@/lib/db/models/UserLibrary";
 import NovelModel from "@/lib/db/models/Novel";
-import path from "path";
-import fs from "fs/promises";
+import ReadingProgressModel from "@/lib/db/models/ReadingProgress";
+import {
+  readNovelMetadata,
+  readChaptersMetadata,
+} from "@/lib/utils/fileSystem";
+
+const SHELVES = ["plan_to_read", "reading", "completed", "dropped"];
 
 interface NovelData {
   slug: string;
@@ -23,7 +28,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -47,19 +52,32 @@ export async function GET(request: NextRequest) {
       .sort({ addedAt: -1 })
       .lean();
 
-    console.log(`Found ${libraryItems.length} library items for user`);
+    const novelIds = libraryItems.map((item) => item.novelId);
+    const [novels, progresses] = await Promise.all([
+      NovelModel.find({ slug: { $in: novelIds } })
+        .select("slug title author coverImage genres status totalChapters")
+        .lean(),
+      ReadingProgressModel.find({
+        userId: user.userId,
+        novelId: { $in: novelIds },
+      })
+        .select(
+          "novelId currentChapter currentPosition currentScrollPosition progressPercent lastReadAt",
+        )
+        .lean(),
+    ]);
+    const novelMap = new Map(novels.map((novel) => [novel.slug, novel]));
+    const progressMap = new Map(
+      progresses.map((progress) => [progress.novelId, progress]),
+    );
 
-    // Get novel details for each library item
+    // Batch relational metadata; retain filesystem fallback for older imports.
     const libraryWithNovels = await Promise.all(
       libraryItems.map(async (item) => {
-        console.log(`Fetching details for novel: ${item.novelId}`);
-
         let novelData: NovelData | null = null;
 
         // Try MongoDB first
-        const novelFromDB = await NovelModel.findOne({ slug: item.novelId })
-          .select("slug title author coverImage genres status totalChapters")
-          .lean();
+        const novelFromDB = novelMap.get(item.novelId);
 
         if (novelFromDB) {
           novelData = {
@@ -71,41 +89,15 @@ export async function GET(request: NextRequest) {
             status: novelFromDB.status || "ongoing",
             totalChapters: novelFromDB.totalChapters || 0,
           };
-          console.log(`Loaded ${novelData.title} from MongoDB`);
         } else {
           // Fallback to metadata.json if not in DB
-          console.log(
-            `Novel ${item.novelId} not in DB, trying metadata file...`
-          );
-          try {
-            const metadataPath = path.join(
-              process.cwd(),
-              "data",
-              "novels",
-              item.novelId,
-              "metadata.json"
-            );
-            const metadataContent = await fs.readFile(metadataPath, "utf-8");
-            const metadata = JSON.parse(metadataContent);
 
-            // Try to get actual chapter count from chapters.json
-            let totalChapters = metadata.totalChapters || 0;
-            try {
-              const chaptersJsonPath = path.join(
-                process.cwd(),
-                "data",
-                "novels",
-                item.novelId,
-                "chapters.json"
-              );
-              const chaptersData = await fs.readFile(chaptersJsonPath, "utf-8");
-              const chapters = JSON.parse(chaptersData);
-              if (chapters.length > 0) {
-                totalChapters = chapters.length;
-              }
-            } catch {
-              console.log(`Could not read chapters.json for ${item.novelId}`);
-            }
+          try {
+            const metadata = await readNovelMetadata(item.novelId);
+            if (!metadata) return null;
+            const chapters = await readChaptersMetadata(item.novelId);
+            const totalChapters =
+              chapters.length || metadata.totalChapters || 0;
 
             novelData = {
               slug: item.novelId,
@@ -118,18 +110,16 @@ export async function GET(request: NextRequest) {
               status: metadata.status || "ongoing",
               totalChapters,
             };
-            console.log(`Loaded ${novelData.title} from metadata`);
           } catch (error) {
             console.error(
               `Failed to load metadata for ${item.novelId}:`,
-              error
+              error,
             );
             return null;
           }
         }
 
         if (!novelData) {
-          console.log(`Novel ${item.novelId} not found anywhere`);
           return null;
         }
 
@@ -137,13 +127,31 @@ export async function GET(request: NextRequest) {
           ...item,
           _id: item._id.toString(),
           novel: novelData,
+          currentChapter: progressMap.get(item.novelId)?.currentChapter || 1,
+          currentScrollPosition:
+            progressMap.get(item.novelId)?.currentScrollPosition ??
+            progressMap.get(item.novelId)?.currentPosition ??
+            0,
+          progressPercent:
+            progressMap.get(item.novelId)?.progressPercent ??
+            Math.min(
+              100,
+              Math.floor(
+                (Math.max(
+                  0,
+                  (progressMap.get(item.novelId)?.currentChapter || 1) - 1,
+                ) /
+                  Math.max(1, novelData.totalChapters)) *
+                  100,
+              ),
+            ),
+          lastReadAt:
+            progressMap.get(item.novelId)?.lastReadAt || item.lastReadAt,
         };
-      })
+      }),
     );
 
     const validLibrary = libraryWithNovels.filter((item) => item !== null);
-
-    console.log(`Returning ${validLibrary.length} valid library items`);
 
     return NextResponse.json({
       success: true,
@@ -154,7 +162,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching library:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch library" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -166,20 +174,21 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const body = await request.json();
     const { novelId, status = "plan_to_read" } = body;
 
-    if (!novelId) {
+    if (typeof novelId !== "string" || !novelId) {
       return NextResponse.json(
         { success: false, error: "Novel ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
+    if (!SHELVES.includes(status)) return NextResponse.json({ success: false, error: "Invalid shelf" }, { status: 400 });
     await connectDB();
 
     // Check if already in library
@@ -191,7 +200,7 @@ export async function POST(request: NextRequest) {
     if (existing) {
       return NextResponse.json(
         { success: false, error: "Already in library", alreadyExists: true },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -205,8 +214,6 @@ export async function POST(request: NextRequest) {
       lastStatusChange: new Date(),
     });
 
-    console.log(`Added ${novelId} to library with status: ${status}`);
-
     return NextResponse.json({
       success: true,
       data: libraryItem,
@@ -216,7 +223,7 @@ export async function POST(request: NextRequest) {
     console.error("Error adding to library:", error);
     return NextResponse.json(
       { success: false, error: "Failed to add to library" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -228,22 +235,27 @@ export async function PATCH(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const body = await request.json();
     const { novelId, status, isFavorite, rating } = body;
 
-    if (!novelId) {
+    if (typeof novelId !== "string" || !novelId) {
       return NextResponse.json(
         { success: false, error: "Novel ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     await connectDB();
 
+    if ((status !== undefined && !SHELVES.includes(status)) ||
+      (isFavorite !== undefined && typeof isFavorite !== "boolean") ||
+      (rating !== undefined && (!Number.isInteger(rating) || rating < 1 || rating > 5))) {
+      return NextResponse.json({ success: false, error: "Invalid library update" }, { status: 400 });
+    }
     const updateData: Record<string, unknown> = {};
     if (status !== undefined) {
       updateData.status = status;
@@ -255,17 +267,15 @@ export async function PATCH(request: NextRequest) {
     const libraryItem = await UserLibraryModel.findOneAndUpdate(
       { userId: user.userId, novelId },
       updateData,
-      { new: true }
+      { new: true, runValidators: true },
     );
 
     if (!libraryItem) {
       return NextResponse.json(
         { success: false, error: "Not in library" },
-        { status: 404 }
+        { status: 404 },
       );
     }
-
-    console.log(`Updated ${novelId} in library`);
 
     return NextResponse.json({
       success: true,
@@ -276,7 +286,7 @@ export async function PATCH(request: NextRequest) {
     console.error("Error updating library:", error);
     return NextResponse.json(
       { success: false, error: "Failed to update library" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -288,17 +298,17 @@ export async function DELETE(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const { searchParams } = new URL(request.url);
     const novelId = searchParams.get("novelId");
 
-    if (!novelId) {
+    if (typeof novelId !== "string" || !novelId) {
       return NextResponse.json(
         { success: false, error: "Novel ID required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -309,8 +319,6 @@ export async function DELETE(request: NextRequest) {
       novelId,
     });
 
-    console.log(`Removed ${novelId} from library`);
-
     return NextResponse.json({
       success: true,
       message: "Removed from library",
@@ -319,7 +327,7 @@ export async function DELETE(request: NextRequest) {
     console.error("Error removing from library:", error);
     return NextResponse.json(
       { success: false, error: "Failed to remove from library" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

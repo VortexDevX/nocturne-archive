@@ -29,6 +29,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const root = document.documentElement;
     root.classList.remove("light", "dark", "amoled", "night");
     root.classList.add(newTheme);
+    const background = getComputedStyle(root).getPropertyValue("--background").trim();
+    document.querySelectorAll('meta[name="theme-color"]').forEach((meta) => {
+      meta.setAttribute("content", `hsl(${background})`);
+      meta.removeAttribute("media");
+    });
   };
 
   const setTheme = (newTheme: Theme) => {

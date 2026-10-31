@@ -95,6 +95,9 @@ export interface ReadingProgress {
   novelId: string;
   currentChapter: number;
   currentPosition: number;
+  currentScrollPosition?: number;
+  chapterProgress?: number;
+  progressPercent?: number;
   lastReadAt: Date;
   isCompleted: boolean;
   chaptersRead: number[];
@@ -153,7 +156,7 @@ export interface UserPreferences {
   theme: "light" | "dark" | "amoled" | "night";
   accentColor: string;
   fontSize: number;
-  fontFamily: "inter" | "roboto" | "fira-code" | "system" | "josephin";
+  fontFamily: "serif" | "inter" | "roboto" | "fira-code" | "system" | "josephin";
   lineHeight: number;
   brightness: number;
   autoSave: boolean;
@@ -196,10 +199,9 @@ export interface ReaderSettings {
   theme: "light" | "dark" | "amoled" | "night";
   accentColor: string;
   fontSize: number;
-  fontFamily: "inter" | "roboto" | "fira-code" | "system" | "josephin";
+  fontFamily: "serif" | "inter" | "roboto" | "fira-code" | "system" | "josephin";
   lineHeight: number;
   brightness: number;
-  minimalMode: boolean;
 }
 
 export interface UserLibrary {

@@ -14,7 +14,7 @@ export default function AdminLayout({
   const isActive = (href: string) => pathname?.startsWith(href);
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-dvh bg-background overflow-hidden">
       {/* Sidebar */}
       <aside className="hidden lg:flex w-64 flex-col border-r border-border bg-card/50">
         <div className="p-4 border-b border-border">
@@ -54,7 +54,7 @@ export default function AdminLayout({
       </aside>
 
       {/* Main */}
-      <main className="flex-1 flex flex-col">
+      <main className="min-w-0 flex-1 flex flex-col">
         <header className="sticky top-0 z-10 border-b border-border bg-card/80 backdrop-blur">
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3 lg:hidden">

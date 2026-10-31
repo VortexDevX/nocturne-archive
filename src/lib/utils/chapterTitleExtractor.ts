@@ -17,7 +17,7 @@ export function extractChapterTitle(
   const titleLines: string[] = [];
   let foundIndex = -1;
 
-  // 🔍 Find the line that clearly begins a chapter
+  // Find the line that clearly begins a chapter
   for (let i = 0; i < Math.min(lines.length, 20); i++) {
     const line = lines[i];
     if (/^(?:chapter|ch\.?)\s*\d+/i.test(line)) {
@@ -28,7 +28,7 @@ export function extractChapterTitle(
 
   if (foundIndex === -1) return `Chapter ${chapterNumber}`;
 
-  // ✅ Collect title lines (1–3 lines max)
+  // Collect title lines (1–3 lines max)
   for (let i = foundIndex; i < Math.min(lines.length, foundIndex + 4); i++) {
     const line = lines[i];
     if (isProbablyProse(line)) break;

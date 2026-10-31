@@ -3,6 +3,7 @@ import { verifyAuth } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
 import BookmarkModel from "@/lib/db/models/Bookmark";
 import NovelModel from "@/lib/db/models/Novel";
+import { readNovelMetadata } from "@/lib/utils/fileSystem";
 
 // GET - Fetch all bookmarks for user
 export async function GET(request: NextRequest) {
@@ -56,17 +57,14 @@ export async function GET(request: NextRequest) {
         } else {
           // Fallback to metadata file
           try {
-            const fs = await import("fs").then((m) => m.promises);
-            const path = await import("path");
-            const metadataPath = path.join(
-              process.cwd(),
-              "data",
-              "novels",
-              bookmark.novelId,
-              "metadata.json",
-            );
-            const metadataContent = await fs.readFile(metadataPath, "utf-8");
-            const metadata = JSON.parse(metadataContent);
+            const metadata = await readNovelMetadata(bookmark.novelId);
+            if (!metadata)
+              return {
+                ...bookmark,
+                _id: bookmark._id.toString(),
+                novelTitle,
+                novelAuthor,
+              };
             novelTitle = metadata.title || "Unknown";
             novelAuthor = metadata.author || "Unknown";
           } catch {

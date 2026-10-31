@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
 import ReadingProgressModel from "@/lib/db/models/ReadingProgress";
+import NovelModel from "@/lib/db/models/Novel";
+import {
+  readNovelMetadata,
+  readChaptersMetadata,
+} from "@/lib/utils/fileSystem";
 
 // Save/Update reading progress
 export async function POST(request: NextRequest) {
@@ -10,21 +15,71 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
-    const body = await request.json();
-    const { novelId, chapterNumber, position } = body;
-
-    if (!novelId || !chapterNumber) {
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
       return NextResponse.json(
-        { success: false, error: "Missing novelId or chapterNumber" },
-        { status: 400 }
+        { success: false, error: "Invalid reading position" },
+        { status: 400 },
+      );
+    }
+    const { novelId, chapterNumber, position = 0, chapterProgress } = body;
+
+    if (
+      typeof novelId !== "string" ||
+      !/^[a-zA-Z0-9_-]+$/.test(novelId) ||
+      !Number.isSafeInteger(chapterNumber) ||
+      chapterNumber < 1 ||
+      !Number.isFinite(position) ||
+      position < 0 ||
+      (chapterProgress !== undefined &&
+        (!Number.isFinite(chapterProgress) ||
+          chapterProgress < 0 ||
+          chapterProgress > 1))
+    ) {
+      return NextResponse.json(
+        { success: false, error: "Invalid reading position" },
+        { status: 400 },
       );
     }
 
     await connectDB();
+
+    const novel = await NovelModel.findOne({ slug: novelId })
+      .select("totalChapters")
+      .lean();
+    let totalChapters = novel?.totalChapters || 0;
+    let chapterIndex = chapterNumber - 1;
+    if (!totalChapters) {
+      const [metadata, chapters] = await Promise.all([
+        readNovelMetadata(novelId),
+        readChaptersMetadata(novelId),
+      ]);
+      totalChapters = chapters.length || metadata?.totalChapters || 0;
+      if (chapters.length)
+        chapterIndex = chapters.findIndex(
+          (chapter) => chapter.number === chapterNumber,
+        );
+    }
+    if (!totalChapters || chapterIndex < 0 || chapterIndex >= totalChapters) {
+      return NextResponse.json(
+        { success: false, error: "Chapter not found" },
+        { status: 404 },
+      );
+    }
+    const progressFields =
+      chapterProgress === undefined || !totalChapters
+        ? {}
+        : {
+            chapterProgress,
+            progressPercent: Math.min(
+              100,
+              ((chapterIndex + chapterProgress) / totalChapters) * 100,
+            ),
+          };
 
     // Use findOneAndUpdate with upsert for atomic operation
     const progress = await ReadingProgressModel.findOneAndUpdate(
@@ -36,6 +91,8 @@ export async function POST(request: NextRequest) {
         $set: {
           currentChapter: chapterNumber,
           currentPosition: position || 0,
+          currentScrollPosition: position,
+          ...progressFields,
           lastReadAt: new Date(),
         },
         $addToSet: {
@@ -53,7 +110,7 @@ export async function POST(request: NextRequest) {
         new: true, // Return updated document
         upsert: true, // Create if doesn't exist
         runValidators: true,
-      }
+      },
     );
 
     return NextResponse.json({
@@ -65,7 +122,7 @@ export async function POST(request: NextRequest) {
     console.error("Error saving reading progress:", error);
     return NextResponse.json(
       { success: false, error: "Failed to save progress" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -77,7 +134,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -87,7 +144,7 @@ export async function GET(request: NextRequest) {
     if (!novelId) {
       return NextResponse.json(
         { success: false, error: "Missing novelId" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -117,7 +174,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching reading progress:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch progress" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -8,14 +8,14 @@ import type { ApiResponse } from "@/types";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string; chapterNumber: string }> }
+  { params }: { params: Promise<{ slug: string; chapterNumber: string }> },
 ) {
   try {
     const session = await getSession();
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Not authenticated" } as ApiResponse,
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -25,7 +25,7 @@ export async function GET(
     if (isNaN(chapterNum)) {
       return NextResponse.json(
         { success: false, message: "Invalid chapter number" } as ApiResponse,
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -35,7 +35,7 @@ export async function GET(
     if (!chapter) {
       return NextResponse.json(
         { success: false, message: "Chapter not found" } as ApiResponse,
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -47,7 +47,7 @@ export async function GET(
           success: false,
           message: "Failed to read chapter content",
         } as ApiResponse,
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -59,7 +59,7 @@ export async function GET(
           content,
         },
       } as ApiResponse,
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: unknown) {
     console.error("Get chapter error:", error);
@@ -69,7 +69,7 @@ export async function GET(
         message: "Failed to get chapter",
         error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

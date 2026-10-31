@@ -13,45 +13,21 @@ import {
   FiEye,
   FiSave,
 } from "react-icons/fi";
+import { useTheme } from "@/components/providers/ThemeProvider";
 import type { UserPreferences } from "@/types";
+import { READER_FONTS } from "@/components/reader/reader-settings";
 
-type ReaderFont = "inter" | "roboto" | "fira-code" | "system" | "josephin";
-
-const FONT_OPTIONS: { value: ReaderFont; label: string; stack: string }[] = [
-  {
-    value: "inter",
-    label: "Inter",
-    stack: '"Inter", ui-sans-serif, system-ui, -apple-system, sans-serif',
-  },
-  {
-    value: "roboto",
-    label: "Roboto",
-    stack: '"Roboto", ui-sans-serif, system-ui, sans-serif',
-  },
-  {
-    value: "fira-code",
-    label: "Fira Code",
-    stack: '"Fira Code", "Cascadia Code", ui-monospace, monospace',
-  },
-  {
-    value: "system",
-    label: "System",
-    stack:
-      "ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif",
-  },
-  {
-    value: "josephin",
-    label: "Josephin Sans",
-    stack: '"Josefin Sans", ui-sans-serif, system-ui, sans-serif',
-  },
-];
+const FONT_OPTIONS = READER_FONTS.map((font) => ({
+  ...font,
+  stack: font.family,
+}));
 
 const ACCENT_COLORS = [
-  { name: "Default", value: "default", bg: "#ffffff", text: "#000000" },
-  { name: "Warm", value: "warm", bg: "#fffdf8", text: "#3e3e3e" },
-  { name: "Sepia", value: "sepia", bg: "#faf6ed", text: "#5c4a2f" },
-  { name: "Cool", value: "cool", bg: "#f7f9fc", text: "#2d3748" },
-  { name: "Green", value: "green", bg: "#f5faf6", text: "#233428" },
+  { name: "Default", value: "default" },
+  { name: "Warm", value: "warm" },
+  { name: "Sepia", value: "sepia" },
+  { name: "Cool", value: "cool" },
+  { name: "Green", value: "green" },
 ];
 
 const SAMPLE_TEXT = `In the beginning, the universe was created. This has made a lot of people very angry and been widely regarded as a bad move. Far out in the uncharted backwaters of the unfashionable end of the western spiral arm of the Galaxy lies a small unregarded yellow sun.
@@ -59,6 +35,7 @@ const SAMPLE_TEXT = `In the beginning, the universe was created. This has made a
 Orbiting this at a distance of roughly ninety-two million miles is an utterly insignificant little blue green planet whose ape-descended life forms are so amazingly primitive that they still think digital watches are a pretty neat idea.`;
 
 export default function ReadingSettingsPage() {
+  const { theme } = useTheme();
   const [prefs, setPrefs] = useState<UserPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [autoSaving, setAutoSaving] = useState(false);
@@ -114,12 +91,6 @@ export default function ReadingSettingsPage() {
     );
   };
 
-  const getCurrentColor = () => {
-    return (
-      ACCENT_COLORS.find((c) => c.value === prefs?.accentColor) ||
-      ACCENT_COLORS[0]
-    );
-  };
 
   if (loading || !prefs) {
     return (
@@ -153,7 +124,7 @@ export default function ReadingSettingsPage() {
 
           {lastSaved && (
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <FiCheckCircle className="w-4 h-4 text-green-500" />
+              <FiCheckCircle className="w-4 h-4 text-success" />
               <span>Last saved: {lastSaved.toLocaleTimeString()}</span>
             </div>
           )}
@@ -178,7 +149,7 @@ export default function ReadingSettingsPage() {
               <div>
                 <h2 className="text-lg font-bold">Page Background</h2>
                 <p className="text-xs text-muted-foreground">
-                  Choose your reading background
+                  {theme === "amoled" ? "AMOLED keeps the page pure black" : "Add a subtle tint to your current theme"}
                 </p>
               </div>
             </div>
@@ -187,6 +158,7 @@ export default function ReadingSettingsPage() {
               {ACCENT_COLORS.map((color) => (
                 <motion.button
                   key={color.value}
+                  disabled={theme === "amoled"}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => {
@@ -200,8 +172,7 @@ export default function ReadingSettingsPage() {
                   }`}
                 >
                   <div
-                    className="w-full h-12 rounded-lg mb-2 border border-border/50 shadow-sm"
-                    style={{ backgroundColor: color.bg }}
+                    className={`reader-preview reader-tint-${color.value} w-full h-12 rounded-lg mb-2 border border-border/50`}
                   />
                   <div className="text-xs font-medium text-center">
                     {color.name}
@@ -224,8 +195,8 @@ export default function ReadingSettingsPage() {
             className="border-2 border-border rounded-xl p-5 bg-card space-y-4"
           >
             <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-blue-500/10">
-                <FiType className="w-5 h-5 text-blue-500" />
+              <div className="p-2 rounded-lg bg-primary/10">
+                <FiType className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <h2 className="text-lg font-bold">Font Family</h2>
@@ -268,8 +239,8 @@ export default function ReadingSettingsPage() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <FiType className="w-5 h-5 text-green-500" />
+                <div className="p-2 rounded-lg bg-success/10">
+                  <FiType className="w-5 h-5 text-success" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold">Font Size</h2>
@@ -311,8 +282,8 @@ export default function ReadingSettingsPage() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <FiAlignLeft className="w-5 h-5 text-purple-500" />
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <FiAlignLeft className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold">Line Spacing</h2>
@@ -354,8 +325,8 @@ export default function ReadingSettingsPage() {
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-orange-500/10">
-                  <FiSun className="w-5 h-5 text-orange-500" />
+                <div className="p-2 rounded-lg bg-warning/10">
+                  <FiSun className="w-5 h-5 text-warning" />
                 </div>
                 <div>
                   <h2 className="text-lg font-bold">Brightness</h2>
@@ -414,19 +385,17 @@ export default function ReadingSettingsPage() {
 
             {/* Preview Content */}
             <div
-              className="p-8 min-h-[400px] transition-all duration-200"
+              className={`reader-preview reader-tint-${prefs.accentColor} p-8 min-h-[400px]`}
               style={{
-                backgroundColor: getCurrentColor().bg,
                 filter: `brightness(${prefs.brightness}%)`,
               }}
             >
               <div
-                className="prose prose-lg max-w-none"
+                className="max-w-none text-foreground"
                 style={{
                   fontFamily: getCurrentFont(),
                   fontSize: `${prefs.fontSize}px`,
                   lineHeight: `${prefs.lineHeight}`,
-                  color: getCurrentColor().text,
                 }}
               >
                 <h1 className="text-2xl font-bold mb-4">Chapter Title</h1>
@@ -450,7 +419,7 @@ export default function ReadingSettingsPage() {
                     </>
                   ) : (
                     <>
-                      <FiCheckCircle className="w-3 h-3 text-green-500" />
+                      <FiCheckCircle className="w-3 h-3 text-success" />
                       <span>All changes saved</span>
                     </>
                   )}
@@ -464,10 +433,10 @@ export default function ReadingSettingsPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="mt-6 p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-2 border-blue-500/20"
+            className="mt-6 p-4 rounded-xl bg-primary/10 border-2 border-primary/20"
           >
             <div className="flex items-start gap-3">
-              <FiSave className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+              <FiSave className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
               <div className="space-y-1 text-sm text-muted-foreground">
                 <p>
                   <strong className="text-foreground">

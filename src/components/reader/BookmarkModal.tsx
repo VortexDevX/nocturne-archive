@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState } from "react";
+import Modal from "@/components/ui/Modal";
 import { FiX, FiBookmark, FiMessageSquare, FiTag } from "react-icons/fi";
 import Button from "@/components/ui/Button";
 import toast from "react-hot-toast";
@@ -30,25 +29,6 @@ export default function BookmarkModal({
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "unset";
-    }
-    return () => {
-      document.body.style.overflow = "unset";
-    };
-  }, [isOpen]);
-
   const handleSaveBookmark = async () => {
     if (!selectedText && !note) {
       toast.error("Please select some text or add a note");
@@ -110,53 +90,11 @@ export default function BookmarkModal({
     }
   };
 
-  if (!mounted) return null;
-
-  const modalContent = (
-    <AnimatePresence>
-      {isOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-          />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ type: "spring", duration: 0.3 }}
-            className="relative w-full max-w-lg bg-card border-2 border-border rounded-2xl shadow-2xl max-h-[85vh] overflow-hidden flex flex-col"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-border bg-gradient-to-r from-primary/5 to-background flex-shrink-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white shadow-lg">
-                  <FiBookmark className="h-5 w-5" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold">Create Bookmark</h2>
-                  <p className="text-xs text-muted-foreground">
-                    Chapter {chapterNumber}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-secondary rounded-lg transition-colors"
-              >
-                <FiX className="h-5 w-5" />
-              </button>
-            </div>
-
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title="Save a passage" size="sm" placement="right">
+      <p className="text-sm text-muted-foreground mb-5">Chapter {chapterNumber} · {chapterTitle}</p>
             {/* Content - Scrollable */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+            <div className="space-y-5">
               {/* Selected Text */}
               {selectedText && (
                 <div>
@@ -172,7 +110,7 @@ export default function BookmarkModal({
 
               {/* Note */}
               <div>
-                <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                <label htmlFor="bookmark-note" className="block text-sm font-semibold mb-2 flex items-center gap-2">
                   <FiMessageSquare className="h-4 w-4 text-primary" />
                   Personal Note
                   <span className="text-xs text-muted-foreground font-normal">
@@ -180,6 +118,7 @@ export default function BookmarkModal({
                   </span>
                 </label>
                 <textarea
+                  id="bookmark-note"
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                   placeholder="Add your thoughts, analysis, or why this passage is important..."
@@ -189,7 +128,7 @@ export default function BookmarkModal({
 
               {/* Tags */}
               <div>
-                <label className="block text-sm font-semibold mb-2 flex items-center gap-2">
+                <label htmlFor="bookmark-tags" className="block text-sm font-semibold mb-2 flex items-center gap-2">
                   <FiTag className="h-4 w-4 text-primary" />
                   Tags
                   <span className="text-xs text-muted-foreground font-normal">
@@ -200,12 +139,13 @@ export default function BookmarkModal({
                 {/* Tag Input */}
                 <div className="flex gap-2 mb-3">
                   <input
+                    id="bookmark-tags"
                     type="text"
                     value={tagInput}
                     onChange={(e) => setTagInput(e.target.value)}
-                    onKeyPress={handleKeyPress}
+                    onKeyDown={handleKeyPress}
                     placeholder="Add a tag..."
-                    className="flex-1 h-10 px-4 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none text-sm"
+                    className="min-w-0 flex-1 h-10 px-4 rounded-xl border-2 border-input bg-background focus:border-primary focus:outline-none text-sm"
                   />
                   <Button
                     variant="secondary"
@@ -227,8 +167,9 @@ export default function BookmarkModal({
                       >
                         {tag}
                         <button
+                          aria-label={`Remove tag ${tag}`}
                           onClick={() => handleRemoveTag(tag)}
-                          className="hover:text-red-500 transition-colors"
+                          className="hover:text-danger transition-colors"
                         >
                           <FiX className="h-3 w-3" />
                         </button>
@@ -270,10 +211,10 @@ export default function BookmarkModal({
             </div>
 
             {/* Footer - Fixed */}
-            <div className="flex gap-3 p-5 border-t border-border bg-card flex-shrink-0">
+            <div className="flex gap-3 pt-5 mt-6 border-t border-border bg-card flex-shrink-0">
               <Button
                 variant="ghost"
-                size="lg"
+                size="md"
                 onClick={onClose}
                 className="flex-1"
               >
@@ -281,14 +222,14 @@ export default function BookmarkModal({
               </Button>
               <Button
                 variant="primary"
-                size="lg"
+                size="md"
                 onClick={handleSaveBookmark}
                 disabled={loading || (!selectedText && !note)}
                 className="flex-1"
               >
                 {loading ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
                     Saving...
                   </>
                 ) : (
@@ -299,11 +240,6 @@ export default function BookmarkModal({
                 )}
               </Button>
             </div>
-          </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
+    </Modal>
   );
-
-  return createPortal(modalContent, document.body);
 }

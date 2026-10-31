@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, createContext, useContext } from "react";
+import { useState } from "react";
+import { HamburgerContext } from "@/components/layout/NavigationContext";
 import DesktopSidebar from "@/components/layout/DesktopSidebar";
 import BottomNav from "@/components/layout/BottomNav";
 import { FiX } from "react-icons/fi";
@@ -17,17 +18,17 @@ import {
   FiGrid,
 } from "react-icons/fi";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
+import Image from "next/image";
 
 const navItems = [
   {
     icon: FiClock,
     label: "Continue Reading",
     path: "/continue",
-    color: "green",
   },
-  { icon: FiBook, label: "Library", path: "/library", color: "blue" },
-  { icon: FiCompass, label: "Explore", path: "/explore", color: "purple" },
-  { icon: FiBookmark, label: "Bookmarks", path: "/bookmarks", color: "orange" },
+  { icon: FiBook, label: "Library", path: "/library" },
+  { icon: FiCompass, label: "Explore", path: "/explore" },
+  { icon: FiBookmark, label: "Bookmarks", path: "/bookmarks" },
 ];
 
 export default function MainLayout({
@@ -44,8 +45,23 @@ export default function MainLayout({
     window.location.href = "/login";
   };
 
+  if (pathname.startsWith("/reader/")) {
+    return (
+      <HamburgerContext.Provider
+        value={{ toggleSidebar: () => setIsSidebarOpen((open) => !open) }}
+      >
+        <main id="main-content" className="h-dvh min-w-0">
+          {children}
+        </main>
+      </HamburgerContext.Provider>
+    );
+  }
+
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="platform-shell flex h-dvh bg-background overflow-hidden">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
       {/* Desktop Sidebar - Hidden on mobile/tablet */}
       <DesktopSidebar />
 
@@ -73,13 +89,19 @@ export default function MainLayout({
                 duration: 0.25,
                 ease: "easeOut",
               }}
-              className="fixed top-0 left-0 bottom-0 w-72 bg-gradient-to-b from-card to-background border-r border-border z-50 flex flex-col lg:hidden shadow-2xl"
+              className="fixed top-0 left-0 bottom-0 w-72 bg-card border-r border-border z-50 flex flex-col lg:hidden shadow-2xl"
             >
               {/* Header */}
-              <div className="p-5 pb-4 border-b border-border bg-gradient-to-br from-primary/5 via-background to-background">
+              <div className="p-5 pb-4 border-b border-border bg-card">
                 <div className="flex items-center justify-between mb-3">
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-purple-600 bg-clip-text text-transparent flex items-center gap-2">
-                    <FiBook className="w-7 h-7 text-primary" />
+                  <h1 className="text-2xl font-bold text-foreground font-serif font-normal tracking-tight flex items-center gap-2">
+                    <Image
+                      src="/brand/nocturne-mark-64.png"
+                      alt=""
+                      width={32}
+                      height={32}
+                      unoptimized
+                    />
                     Nocturne
                   </h1>
                   <div className="flex items-center gap-2">
@@ -109,7 +131,6 @@ export default function MainLayout({
                     icon={<item.icon />}
                     label={item.label}
                     active={pathname === item.path}
-                    color={item.color}
                     onClick={() => {
                       router.push(item.path);
                       setIsSidebarOpen(false);
@@ -119,12 +140,11 @@ export default function MainLayout({
               </nav>
 
               {/* Bottom Actions */}
-              <div className="p-4 border-t border-border bg-gradient-to-b from-transparent to-secondary/20 space-y-1.5">
+              <div className="p-4 border-t border-border bg-primary/10 space-y-1.5">
                 <MobileNavItem
                   icon={<FiUser />}
                   label="Profile"
                   active={pathname === "/profile"}
-                  color="gray"
                   onClick={() => {
                     router.push("/profile");
                     setIsSidebarOpen(false);
@@ -134,7 +154,6 @@ export default function MainLayout({
                   icon={<FiSettings />}
                   label="Settings"
                   active={pathname === "/settings"}
-                  color="gray"
                   onClick={() => {
                     router.push("/settings");
                     setIsSidebarOpen(false);
@@ -142,7 +161,7 @@ export default function MainLayout({
                 />
                 <button
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-red-500 hover:bg-red-500/10 border-2 border-transparent hover:border-red-500/20 font-medium"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-danger hover:bg-danger/10 border-2 border-transparent hover:border-danger/20 font-medium"
                 >
                   <FiLogOut className="text-lg flex-shrink-0" />
                   <span className="flex-1 text-left">Logout</span>
@@ -154,7 +173,10 @@ export default function MainLayout({
       </AnimatePresence>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col overflow-y-auto">
+      <main
+        id="main-content"
+        className="flex-1 min-w-0 flex flex-col overflow-y-auto"
+      >
         <HamburgerContext.Provider
           value={{ toggleSidebar: () => setIsSidebarOpen(!isSidebarOpen) }}
         >
@@ -175,7 +197,6 @@ interface MobileNavItemProps {
   active: boolean;
   badge?: number;
   onClick: () => void;
-  color?: string;
 }
 
 function MobileNavItem({
@@ -184,30 +205,21 @@ function MobileNavItem({
   active,
   badge,
   onClick,
-  color = "blue",
 }: MobileNavItemProps) {
-  const colorMap: Record<string, string> = {
-    green: "from-green-500 to-emerald-500",
-    blue: "from-blue-500 to-cyan-500",
-    purple: "from-purple-500 to-pink-500",
-    orange: "from-orange-500 to-amber-500",
-    pink: "from-pink-500 to-rose-500",
-    gray: "from-gray-500 to-slate-500",
-  };
 
   return (
     <button
       onClick={onClick}
       className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all relative overflow-hidden ${
         active
-          ? "text-white shadow-lg"
+          ? "text-primary bg-primary/10"
           : "hover:bg-secondary/80 text-muted-foreground hover:text-foreground"
       }`}
     >
       {/* Active Background Gradient */}
       {active && (
         <div
-          className={`absolute inset-0 bg-gradient-to-r ${colorMap[color]}`}
+          className="absolute inset-0 border border-primary/20 rounded-xl"
         />
       )}
 
@@ -224,7 +236,7 @@ function MobileNavItem({
         <span
           className={`px-2 py-0.5 text-xs rounded-full font-bold relative z-10 ${
             active
-              ? "bg-white/20 text-white"
+              ? "bg-primary/10 text-primary"
               : "bg-primary/15 text-primary border border-primary/20"
           }`}
         >
@@ -234,10 +246,3 @@ function MobileNavItem({
     </button>
   );
 }
-
-// Context for hamburger menu
-const HamburgerContext = createContext<{ toggleSidebar: () => void }>({
-  toggleSidebar: () => {},
-});
-
-export const useHamburger = () => useContext(HamburgerContext);

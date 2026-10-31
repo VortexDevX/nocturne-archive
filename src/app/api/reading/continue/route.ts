@@ -3,8 +3,10 @@ import { verifyAuth } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
 import ReadingProgressModel from "@/lib/db/models/ReadingProgress";
 import NovelModel from "@/lib/db/models/Novel";
-import path from "path";
-import fs from "fs/promises";
+import {
+  readNovelMetadata,
+  readChaptersMetadata,
+} from "@/lib/utils/fileSystem";
 
 interface NovelData {
   title: string;
@@ -21,7 +23,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       return NextResponse.json(
         { success: false, error: "Unauthorized" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -36,8 +38,6 @@ export async function GET(request: NextRequest) {
       .limit(20)
       .lean();
 
-    console.log("Found progress records:", progressList.length);
-
     if (progressList.length === 0) {
       return NextResponse.json({
         success: true,
@@ -47,17 +47,20 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Get novel details for each progress
+    const novels = await NovelModel.find({
+      slug: { $in: progressList.map((progress) => progress.novelId) },
+    })
+      .select("title author coverImage totalChapters genres slug")
+      .lean();
+    const novelMap = new Map(novels.map((novel) => [novel.slug, novel]));
+
+    // One metadata query for the whole shelf.
     const continueReadingData = await Promise.all(
       progressList.map(async (progress) => {
-        console.log("Processing progress for novel:", progress.novelId);
-
         let novelData: NovelData | null = null;
 
         // Try to find novel by slug field in MongoDB
-        const novelFromDB = await NovelModel.findOne({ slug: progress.novelId })
-          .select("title author coverImage totalChapters genres slug")
-          .lean();
+        const novelFromDB = novelMap.get(progress.novelId);
 
         if (novelFromDB) {
           novelData = {
@@ -68,22 +71,12 @@ export async function GET(request: NextRequest) {
             genres: novelFromDB.genres || [],
             slug: novelFromDB.slug || progress.novelId,
           };
-          console.log("Loaded from MongoDB:", novelData.title);
         } else {
           // Fallback: try metadata file
-          console.log(
-            `Novel not found in DB for slug: ${progress.novelId}, trying metadata file...`
-          );
+
           try {
-            const metadataPath = path.join(
-              process.cwd(),
-              "data",
-              "novels",
-              progress.novelId,
-              "metadata.json"
-            );
-            const metadataContent = await fs.readFile(metadataPath, "utf-8");
-            const metadata = JSON.parse(metadataContent);
+            const metadata = await readNovelMetadata(progress.novelId);
+            if (!metadata) return null;
 
             novelData = {
               title: metadata.title,
@@ -95,18 +88,16 @@ export async function GET(request: NextRequest) {
               genres: metadata.genres || [],
               slug: progress.novelId,
             };
-            console.log("Loaded from metadata:", novelData.title);
           } catch (error) {
             console.error(
               `Failed to load metadata for ${progress.novelId}:`,
-              error
+              error,
             );
             return null;
           }
         }
 
         if (!novelData) {
-          console.log(`Skipping - novel not found: ${progress.novelId}`);
           return null;
         }
 
@@ -115,27 +106,17 @@ export async function GET(request: NextRequest) {
         let actualTotalChapters = novelData.totalChapters;
 
         try {
-          const chaptersJsonPath = path.join(
-            process.cwd(),
-            "data",
-            "novels",
-            progress.novelId,
-            "chapters.json"
-          );
-          const chaptersData = await fs.readFile(chaptersJsonPath, "utf-8");
-          const chapters = JSON.parse(chaptersData);
+          const chapters = await readChaptersMetadata(progress.novelId);
 
           // If totalChapters is 0 or missing, count from chapters.json
           if (!actualTotalChapters || actualTotalChapters === 0) {
             actualTotalChapters = chapters.length;
-            console.log(
-              `Calculated totalChapters from chapters.json: ${actualTotalChapters}`
-            );
           }
 
           // Find current chapter title
           const currentChapter = chapters.find(
-            (ch: { number?: number; title?: string }) => ch.number === progress.currentChapter
+            (ch: { number?: number; title?: string }) =>
+              ch.number === progress.currentChapter,
           );
           if (currentChapter?.title) {
             currentChapterTitle = currentChapter.title;
@@ -143,21 +124,26 @@ export async function GET(request: NextRequest) {
         } catch (error) {
           console.error(
             `Could not read chapters.json for ${progress.novelId}:`,
-            error
+            error,
           );
         }
 
         // Ensure we have a valid totalChapters
         if (!actualTotalChapters || actualTotalChapters === 0) {
           console.warn(
-            `No totalChapters found for ${progress.novelId}, using currentChapter as fallback`
+            `No totalChapters found for ${progress.novelId}, using currentChapter as fallback`,
           );
           actualTotalChapters = progress.currentChapter;
         }
 
         // Calculate progress percentage
-        const progressPercent = Math.floor(
-          (progress.currentChapter / actualTotalChapters) * 100
+        const progressPercent = Math.min(
+          100,
+          progress.progressPercent ??
+            Math.floor(
+              (Math.max(0, progress.currentChapter - 1) / actualTotalChapters) *
+                100,
+            ),
         );
 
         // Calculate time since last read
@@ -173,17 +159,17 @@ export async function GET(request: NextRequest) {
           currentChapterTitle,
           totalChapters: actualTotalChapters,
           progressPercent,
+          currentScrollPosition:
+            progress.currentScrollPosition ?? progress.currentPosition,
           lastReadAt: progress.lastReadAt,
           timeSince,
           chaptersRead: progress.chaptersRead?.length || 0,
         };
-      })
+      }),
     );
 
     // Filter out null values (novels that don't exist)
     const validData = continueReadingData.filter((item) => item !== null);
-
-    console.log("Valid continue reading items:", validData.length);
 
     // Group by time periods
     const now = new Date();
@@ -210,7 +196,7 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching continue reading:", error);
     return NextResponse.json(
       { success: false, error: "Failed to fetch continue reading data" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

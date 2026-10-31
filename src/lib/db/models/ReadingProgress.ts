@@ -21,6 +21,9 @@ const ReadingProgressSchema = new Schema<ReadingProgress>(
       type: Number,
       default: 0,
     },
+    currentScrollPosition: { type: Number, min: 0 },
+    chapterProgress: { type: Number, min: 0, max: 1 },
+    progressPercent: { type: Number, min: 0, max: 100 },
     lastReadAt: {
       type: Date,
       default: Date.now,

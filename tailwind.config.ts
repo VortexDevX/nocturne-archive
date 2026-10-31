@@ -10,6 +10,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        success: "hsl(var(--success))",
+        warning: "hsl(var(--warning))",
+        danger: "hsl(var(--danger))",
+        "danger-foreground": "hsl(var(--danger-foreground))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         card: "hsl(var(--card))",
@@ -33,8 +37,8 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["var(--font-inter)"],
-        serif: ["var(--font-literata)"],
-        mono: ["var(--font-jetbrains)"],
+        serif: ["Georgia", "Times New Roman", "serif"],
+        mono: ["var(--font-fira-code)", "monospace"],
       },
     },
   },

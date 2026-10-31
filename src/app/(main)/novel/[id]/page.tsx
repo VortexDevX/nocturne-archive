@@ -27,8 +27,9 @@ import {
   FiChevronLeft,
   FiBook,
 } from "react-icons/fi";
+import NovelActivity from "@/components/library/NovelActivity";
 import Button from "@/components/ui/Button";
-import { useHamburger } from "../../layout";
+import { useHamburger } from "@/components/layout/NavigationContext";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
 import toast from "react-hot-toast";
 
@@ -136,7 +137,7 @@ export default function NovelDetailPage() {
 
   const checkLibraryStatus = async () => {
     try {
-      const response = await fetch(`/api/library/check?novelId=${params.id}`);
+      const response = await fetch(`/api/library/check?novelId=${encodeURIComponent(String(params.id))}`, { cache: "no-store" });
 
       if (!response.ok) {
         console.warn("Failed to check library status");
@@ -160,7 +161,7 @@ export default function NovelDetailPage() {
   const handleAddToLibrary = async (status: string) => {
     setUpdatingStatus(true);
     try {
-      const response = await fetch("/api/library", {
+      let response = await fetch("/api/library", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -171,9 +172,14 @@ export default function NovelDetailPage() {
         }),
       });
 
-      const data = await response.json();
-
+      let data = await response.json();
+      // Another tab or a slow membership request may have added this book already.
+      if (data.alreadyExists) {
+        response = await fetch("/api/library", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ novelId: params.id, status }) });
+        data = await response.json();
+      }
       if (data.success) {
+        setLibraryStatus({ inLibrary: true, status: data.data.status, isFavorite: data.data.isFavorite });
         toast.success("Added to library!");
         checkLibraryStatus();
       } else if (data.alreadyExists) {
@@ -207,6 +213,7 @@ export default function NovelDetailPage() {
       const data = await response.json();
 
       if (data.success) {
+        setLibraryStatus({ inLibrary: true, status: data.data.status, isFavorite: data.data.isFavorite });
         toast.success("Status updated!");
         checkLibraryStatus();
       } else {
@@ -419,19 +426,19 @@ export default function NovelDetailPage() {
   const statusConfig = {
     plan_to_read: {
       label: "Plan to Read",
-      color: "bg-orange-500/10 text-orange-500 border-orange-500/30",
+      color: "bg-warning/10 text-warning border-warning/30",
     },
     reading: {
       label: "Reading",
-      color: "bg-blue-500/10 text-blue-500 border-blue-500/30",
+      color: "bg-primary/10 text-primary border-primary/30",
     },
     completed: {
       label: "Completed",
-      color: "bg-green-500/10 text-green-500 border-green-500/30",
+      color: "bg-success/10 text-success border-success/30",
     },
     dropped: {
       label: "Dropped",
-      color: "bg-red-500/10 text-red-500 border-red-500/30",
+      color: "bg-danger/10 text-danger border-danger/30",
     },
   };
 
@@ -499,7 +506,7 @@ export default function NovelDetailPage() {
                       sizes="(max-width: 640px) 128px, (max-width: 1024px) 160px, 208px"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 via-purple-500/20 to-pink-500/20 flex items-center justify-center">
+                    <div className="w-full h-full bg-primary/10 flex items-center justify-center">
                       <FiBookOpen className="w-12 h-12 lg:w-14 lg:h-14 text-muted-foreground" />
                     </div>
                   )}
@@ -528,10 +535,10 @@ export default function NovelDetailPage() {
                   <span
                     className={`px-3 py-1.5 rounded-lg font-bold text-xs border ${
                       novel.status === "completed"
-                        ? "bg-green-500/10 text-green-500 border-green-500/30"
+                        ? "bg-success/10 text-success border-success/30"
                         : novel.status === "ongoing"
-                          ? "bg-blue-500/10 text-blue-500 border-blue-500/30"
-                          : "bg-orange-500/10 text-orange-500 border-orange-500/30"
+                          ? "bg-primary/10 text-primary border-primary/30"
+                          : "bg-warning/10 text-warning border-warning/30"
                     }`}
                   >
                     {novel.status.charAt(0).toUpperCase() +
@@ -581,7 +588,7 @@ export default function NovelDetailPage() {
 
                   <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <FiTrendingUp className="h-4 w-4 text-green-500" />
+                      <FiTrendingUp className="h-4 w-4 text-success" />
                       <span className="text-xs text-muted-foreground">
                         Progress
                       </span>
@@ -591,7 +598,7 @@ export default function NovelDetailPage() {
 
                   <div className="bg-card/50 backdrop-blur-sm border border-border rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <FiEye className="h-4 w-4 text-blue-500" />
+                      <FiEye className="h-4 w-4 text-primary" />
                       <span className="text-xs text-muted-foreground">
                         Read
                       </span>
@@ -607,7 +614,7 @@ export default function NovelDetailPage() {
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 p-3 rounded-lg bg-gradient-to-r from-primary/5 to-purple-500/5 border border-primary/20"
+                    className="mb-4 p-3 rounded-lg bg-primary/10 border border-primary/20"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-xs font-semibold text-muted-foreground">
@@ -622,7 +629,7 @@ export default function NovelDetailPage() {
                         initial={{ width: 0 }}
                         animate={{ width: `${progressPercent}%` }}
                         transition={{ duration: 1, ease: "easeOut" }}
-                        className="h-full bg-gradient-to-r from-primary to-purple-500 rounded-full"
+                        className="h-full bg-primary rounded-full"
                       />
                     </div>
                   </motion.div>
@@ -807,7 +814,7 @@ export default function NovelDetailPage() {
                       <FiHeart
                         className={`h-5 w-5 ${
                           libraryStatus.isFavorite
-                            ? "fill-red-500 text-red-500"
+                            ? "fill-red-500 text-danger"
                             : ""
                         }`}
                       />
@@ -1043,7 +1050,7 @@ export default function NovelDetailPage() {
                               isCurrent
                                 ? "bg-primary/10 text-primary"
                                 : isRead
-                                  ? "bg-green-500/10 text-green-500"
+                                  ? "bg-success/10 text-success"
                                   : "bg-secondary text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary"
                             } transition-colors`}
                           >
@@ -1076,8 +1083,8 @@ export default function NovelDetailPage() {
                               </span>
                             )}
                             {isRead && !isCurrent && (
-                              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                                <FiCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-green-500" />
+                              <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-success/20 flex items-center justify-center flex-shrink-0">
+                                <FiCheck className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-success" />
                               </div>
                             )}
                             <FiChevronRight
@@ -1304,81 +1311,29 @@ export default function NovelDetailPage() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.2 }}
-                className="text-center py-12"
+                className="py-4"
               >
-                <FiClock className="h-12 w-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-                <p className="text-muted-foreground">
-                  Activity tracking coming soon
-                </p>
+                <NovelActivity key={libraryStatus.status} novelId={String(params.id)} />
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Mobile Sticky Bottom Bar */}
-      <motion.div
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-xl border-t-2 border-border p-4 pb-safe"
-      >
-        <div className="flex gap-2">
-          {progress ? (
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleContinueReading}
-              className="flex-1 shadow-lg shadow-primary/25"
-            >
-              <FiPlay className="mr-2" />
-              Continue Reading
-            </Button>
-          ) : (
-            <Button
-              variant="primary"
-              size="lg"
-              onClick={handleStartReading}
-              className="flex-1 shadow-lg shadow-primary/25 mb-4"
-            >
-              <FiBookOpen className="mr-2" />
-              Start Reading
-            </Button>
-          )}
-
-          {/* Library Status Button - Always visible */}
-          <Button
-            variant={libraryStatus.inLibrary ? "secondary" : "secondary"}
-            size="lg"
-            onClick={() => setShowStatusMenu(true)}
-            className="!px-4"
-            disabled={updatingStatus}
-          >
-            {updatingStatus ? (
-              <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-            ) : libraryStatus.inLibrary ? (
-              <FiCheck className="h-5 w-5 text-green-500" />
-            ) : (
-              <FiBookmark className="h-5 w-5" />
-            )}
-          </Button>
-
-          {/* Favorite Button - Only when in library */}
-          {libraryStatus.inLibrary && (
-            <Button
-              variant="ghost"
-              size="lg"
-              onClick={handleToggleFavorite}
-              className="!px-4"
-            >
-              <FiHeart
-                className={`h-5 w-5 ${
-                  libraryStatus.isFavorite ? "fill-red-500 text-red-500" : ""
-                }`}
-              />
-            </Button>
-          )}
-        </div>
-      </motion.div>
+      {/* Compact mobile dock: a single reading action with two labeled utilities. */}
+      <nav className="novel-mobile-dock lg:hidden" aria-label="Novel actions">
+        <button className="novel-dock-read" onClick={progress ? handleContinueReading : handleStartReading}>
+          <FiBookOpen aria-hidden="true" />
+          <span><strong>{progress ? "Continue reading" : "Start reading"}</strong><small>Chapter {progress?.currentChapter || 1}</small></span>
+          <FiChevronRight aria-hidden="true" />
+        </button>
+        <button className="novel-dock-utility" aria-label="Change library shelf" onClick={() => setShowStatusMenu(true)} disabled={updatingStatus}>
+          <FiBookmark aria-hidden="true" /><span>{libraryStatus.status ? statusConfig[libraryStatus.status].label : "Save"}</span>
+        </button>
+        {libraryStatus.inLibrary && <button className="novel-dock-utility" aria-label={libraryStatus.isFavorite ? "Remove from favorites" : "Add to favorites"} aria-pressed={Boolean(libraryStatus.isFavorite)} onClick={handleToggleFavorite}>
+          <FiHeart aria-hidden="true" className={libraryStatus.isFavorite ? "fill-current text-primary" : ""} /><span>Favorite</span>
+        </button>}
+      </nav>
 
       {/* Mobile Status Menu Modal */}
       <AnimatePresence>

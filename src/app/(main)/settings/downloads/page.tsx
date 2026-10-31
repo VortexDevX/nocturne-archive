@@ -218,7 +218,7 @@ export default function DownloadsManagerPage() {
         className="grid grid-cols-1 sm:grid-cols-3 gap-4"
       >
         {/* Total Storage */}
-        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-primary/10 to-purple-500/10 border-2 border-primary/20">
+        <div className="p-4 sm:p-6 rounded-xl bg-primary/10 border-2 border-primary/20">
           <div className="flex items-center gap-3 mb-2">
             <div className="p-2 rounded-lg bg-primary/20">
               <FiHardDrive className="w-5 h-5 text-primary" />
@@ -231,10 +231,10 @@ export default function DownloadsManagerPage() {
         </div>
 
         {/* Cached Chapters */}
-        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 border-2 border-green-500/20">
+        <div className="p-4 sm:p-6 rounded-xl bg-primary/10 border-2 border-success/20">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-green-500/20">
-              <FiCheckCircle className="w-5 h-5 text-green-500" />
+            <div className="p-2 rounded-lg bg-success/20">
+              <FiCheckCircle className="w-5 h-5 text-success" />
             </div>
             <h3 className="text-sm font-medium text-muted-foreground">
               Cached Chapters
@@ -244,10 +244,10 @@ export default function DownloadsManagerPage() {
         </div>
 
         {/* Novels */}
-        <div className="p-4 sm:p-6 rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-2 border-blue-500/20">
+        <div className="p-4 sm:p-6 rounded-xl bg-primary/10 border-2 border-primary/20">
           <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 rounded-lg bg-blue-500/20">
-              <FiBook className="w-5 h-5 text-blue-500" />
+            <div className="p-2 rounded-lg bg-primary/20">
+              <FiBook className="w-5 h-5 text-primary" />
             </div>
             <h3 className="text-sm font-medium text-muted-foreground">
               Novels
@@ -324,7 +324,7 @@ export default function DownloadsManagerPage() {
                 <div className="flex flex-col sm:flex-row gap-4 p-4">
                   {/* Cover Image */}
                   <div className="flex-shrink-0">
-                    <div className="relative w-20 h-28 rounded-lg overflow-hidden bg-gradient-to-br from-primary/20 to-purple-500/20 border border-border shadow-md">
+                    <div className="relative w-20 h-28 rounded-lg overflow-hidden bg-primary/10 border border-border shadow-md">
                       {item.novel.coverImage ? (
                         <Image
                           src={item.novel.coverImage}
@@ -361,7 +361,7 @@ export default function DownloadsManagerPage() {
                         <FiCheckCircle
                           className={`w-4 h-4 ${
                             info.count > 0
-                              ? "text-green-500"
+                              ? "text-success"
                               : "text-muted-foreground"
                           }`}
                         />
@@ -397,7 +397,7 @@ export default function DownloadsManagerPage() {
                         </div>
                         <div className="h-2 bg-secondary rounded-full overflow-hidden">
                           <motion.div
-                            className="h-full bg-gradient-to-r from-primary to-purple-500"
+                            className="h-full bg-primary "
                             initial={{ width: 0 }}
                             animate={{ width: `${progress}%` }}
                             transition={{ duration: 0.3 }}
@@ -410,13 +410,13 @@ export default function DownloadsManagerPage() {
                           <span className="text-xs font-medium text-muted-foreground">
                             Cache Progress
                           </span>
-                          <span className="text-xs font-bold text-green-500">
+                          <span className="text-xs font-bold text-success">
                             {Math.round(cachePercent)}%
                           </span>
                         </div>
                         <div className="h-2 bg-secondary rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
+                            className="h-full bg-primary rounded-full"
                             style={{ width: `${cachePercent}%` }}
                           />
                         </div>
@@ -457,7 +457,7 @@ export default function DownloadsManagerPage() {
                           size="sm"
                           onClick={() => clearCache(slug)}
                           disabled={isDownloading}
-                          className="flex items-center gap-2 text-red-500 hover:bg-red-500/10"
+                          className="flex items-center gap-2 text-danger hover:bg-danger/10"
                         >
                           <FiTrash2 className="w-4 h-4" />
                           Clear
@@ -477,10 +477,10 @@ export default function DownloadsManagerPage() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.4 }}
-        className="p-4 rounded-xl bg-gradient-to-r from-blue-500/10 to-cyan-500/10 border-2 border-blue-500/20"
+        className="p-4 rounded-xl bg-primary/10 border-2 border-primary/20"
       >
         <div className="flex items-start gap-3">
-          <FiAlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+          <FiAlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
           <div className="space-y-1 text-sm text-muted-foreground">
             <p>
               <strong className="text-foreground">Tip:</strong> Downloaded

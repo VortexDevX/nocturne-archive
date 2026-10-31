@@ -13,7 +13,7 @@ export async function GET() {
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Not authenticated" } as ApiResponse,
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -30,9 +30,9 @@ export async function GET() {
             ...metadata,
             slug: folder,
             totalChapters: chapters.length,
-            coverImage: `/api/novels/cover/${encodeURIComponent(folder)}/${
-              metadata.coverImage
-            }`,
+            coverImage: metadata.coverImage
+              ? `/api/novels/cover/${encodeURIComponent(folder)}/${metadata.coverImage}`
+              : undefined,
           });
         }
       } catch {
@@ -46,7 +46,7 @@ export async function GET() {
         success: true,
         data: novels,
       } as ApiResponse,
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: unknown) {
     console.error("List novels error:", error);
@@ -56,7 +56,7 @@ export async function GET() {
         message: "Failed to list novels",
         error: error instanceof Error ? error.message : "Failed to list novels",
       } as ApiResponse,
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

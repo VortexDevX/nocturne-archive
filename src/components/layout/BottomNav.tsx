@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   FiBook,
   FiCompass,
@@ -8,7 +9,6 @@ import {
   FiBookmark,
   FiSettings,
 } from "react-icons/fi";
-import { motion } from "framer-motion";
 
 const navItems = [
   { icon: FiBook, label: "Library", path: "/library" },
@@ -20,7 +20,6 @@ const navItems = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   // Hide bottom nav on reader pages and novel detail pages
   if (pathname.startsWith("/reader") || pathname.startsWith("/novel/")) {
@@ -28,23 +27,22 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border backdrop-blur-lg bg-opacity-95">
-      <div className="flex items-center justify-around px-2 py-2 safe-area-bottom">
+    <nav aria-label="Main navigation" className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+      <div className="flex items-center justify-around px-2 pt-2 pb-[max(8px,env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;
 
           return (
-            <button
+            <Link
               key={item.path}
-              onClick={() => router.push(item.path)}
+              href={item.path}
+              aria-current={isActive ? "page" : undefined}
               className="relative flex flex-col items-center justify-center flex-1 py-2 px-1"
             >
               {isActive && (
-                <motion.div
-                  layoutId="active-nav"
+                <div
                   className="absolute inset-0 bg-primary/10 rounded-2xl"
-                  transition={{ type: "spring", duration: 0.5 }}
                 />
               )}
               <Icon
@@ -59,7 +57,7 @@ export default function BottomNav() {
               >
                 {item.label}
               </span>
-            </button>
+            </Link>
           );
         })}
       </div>

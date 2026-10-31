@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type ReaderFont =
+  | "serif"
   | "inter"
   | "roboto"
   | "fira-code"
@@ -14,7 +15,8 @@ interface ReaderSettings {
   lineHeight: number;
   brightness: number;
   accentColor: string;
-  minimalMode: boolean;
+  readingMode: "continuous" | "paged";
+  contentWidth: number;
   currentNovel: string | null;
   currentChapter: number | null;
   scrollPosition: number;
@@ -26,7 +28,8 @@ interface ReaderState extends ReaderSettings {
   setLineHeight: (height: number) => void;
   setBrightness: (brightness: number) => void;
   setAccentColor: (color: string) => void;
-  setMinimalMode: (enabled: boolean) => void;
+  setReadingMode: (mode: "continuous" | "paged") => void;
+  setContentWidth: (width: number) => void;
   setReadingPosition: (
     novel: string,
     chapter: number,
@@ -36,12 +39,13 @@ interface ReaderState extends ReaderSettings {
 }
 
 const defaultSettings: ReaderSettings = {
-  fontSize: 18,
-  fontFamily: "inter",
+  fontSize: 20,
+  fontFamily: "serif",
   lineHeight: 1.8,
   brightness: 100,
   accentColor: "default",
-  minimalMode: false,
+  readingMode: "continuous",
+  contentWidth: 720,
   currentNovel: null,
   currentChapter: null,
   scrollPosition: 0,
@@ -56,7 +60,8 @@ export const useReaderStore = create<ReaderState>()(
       setLineHeight: (height) => set({ lineHeight: height }),
       setBrightness: (brightness) => set({ brightness }),
       setAccentColor: (color) => set({ accentColor: color }),
-      setMinimalMode: (enabled) => set({ minimalMode: enabled }),
+      setReadingMode: (readingMode) => set({ readingMode }),
+      setContentWidth: (contentWidth) => set({ contentWidth }),
       setReadingPosition: (novel, chapter, position) =>
         set({
           currentNovel: novel,

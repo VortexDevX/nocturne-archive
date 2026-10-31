@@ -6,13 +6,8 @@ import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/components/providers/ThemeProvider";
 import { motion } from "framer-motion";
 import {
-  FiMoon,
-  FiSun,
-  FiMonitor,
-  FiChevronRight,
   FiDownload,
   FiBook,
-  FiShield,
   FiInfo,
   FiEdit3,
   FiMenu,
@@ -25,45 +20,16 @@ import {
   FiAperture,
   FiToggleLeft,
   FiToggleRight,
-  FiCheckCircle,
   FiHeart,
 } from "react-icons/fi";
 import { useRouter } from "next/navigation";
+import ThemeChoices from "@/components/ui/ThemeChoices";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
-import { useHamburger } from "../layout";
+import { useHamburger } from "@/components/layout/NavigationContext";
 import toast from "react-hot-toast";
 import type { UserPreferences } from "@/types";
 
-const THEME_PREVIEWS = {
-  light: {
-    name: "Light",
-    icon: FiSun,
-    gradient: "from-white to-gray-100",
-    color: "text-gray-900",
-    border: "border-gray-300",
-  },
-  dark: {
-    name: "Dark",
-    icon: FiMoon,
-    gradient: "from-gray-900 to-gray-800",
-    color: "text-white",
-    border: "border-gray-700",
-  },
-  night: {
-    name: "Night",
-    icon: FiMoon,
-    gradient: "from-[#1a2332] to-[#0f1419]",
-    color: "text-blue-100",
-    border: "border-blue-900",
-  },
-  amoled: {
-    name: "AMOLED",
-    icon: FiMonitor,
-    gradient: "from-black to-gray-950",
-    color: "text-white",
-    border: "border-gray-800",
-  },
-};
+
 
 export default function SettingsPage() {
   const { user, setUser } = useAuthStore();
@@ -200,16 +166,16 @@ export default function SettingsPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-purple-500/10 to-pink-500/10 border-2 border-primary/20"
+            className="relative overflow-hidden rounded-2xl bg-card border border-border"
           >
             {/* Background Pattern */}
-            <div className="absolute inset-0 bg-grid-white/5 [mask-image:radial-gradient(white,transparent_85%)]" />
+            <div className="absolute inset-0 bg-transparent" />
 
             <div className="relative p-6 sm:p-8">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
                 {/* Avatar */}
                 <div className="relative flex-shrink-0">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary to-purple-600 rounded-full blur-lg opacity-50" />
+
                   {user?.profilePicture ? (
                     <div className="relative h-24 w-24 rounded-full overflow-hidden ring-4 ring-background">
                       <Image
@@ -222,11 +188,11 @@ export default function SettingsPage() {
                       />
                     </div>
                   ) : (
-                    <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-3xl ring-4 ring-background">
+                    <div className="relative h-24 w-24 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-3xl ring-4 ring-background">
                       {user?.username?.charAt(0).toUpperCase() || "U"}
                     </div>
                   )}
-                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-4 border-background" />
+                  <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-success rounded-full border-4 border-background" />
                 </div>
 
                 {/* User Info */}
@@ -254,8 +220,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-blue-500/10">
-                        <FiBookOpen className="w-4 h-4 text-blue-500" />
+                      <div className="p-1.5 rounded-lg bg-primary/10">
+                        <FiBookOpen className="w-4 h-4 text-primary" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Library</p>
@@ -278,7 +244,7 @@ export default function SettingsPage() {
                   </button>
                   <button
                     onClick={handleLogout}
-                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors font-medium border-2 border-red-500/20"
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-danger/10 text-danger hover:bg-danger/20 transition-colors font-medium border-2 border-danger/20"
                   >
                     <FiLogOut className="h-4 w-4" />
                     <span>Logout</span>
@@ -298,43 +264,34 @@ export default function SettingsPage() {
               <FiTrendingUp className="w-4 h-4" />
               QUICK ACCESS
             </h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
               {[
                 {
                   icon: FiBook,
                   label: "Reading Settings",
                   description: "Font, theme & more",
-                  gradient: "from-blue-500/10 to-cyan-500/10",
-                  borderColor: "border-blue-500/20",
-                  iconColor: "text-blue-500",
+                  surface: "bg-primary/10",
+                  borderColor: "border-primary/20",
+                  iconColor: "text-primary",
                   onClick: () => router.push("/settings/reading"),
                 },
                 {
                   icon: FiDownload,
                   label: "Downloads",
                   description: "Offline content",
-                  gradient: "from-green-500/10 to-emerald-500/10",
-                  borderColor: "border-green-500/20",
-                  iconColor: "text-green-500",
+                  surface: "bg-primary/10",
+                  borderColor: "border-success/20",
+                  iconColor: "text-success",
                   onClick: () => router.push("/settings/downloads"),
                 },
                 {
                   icon: FiUser,
                   label: "Profile",
                   description: "Edit your info",
-                  gradient: "from-purple-500/10 to-pink-500/10",
-                  borderColor: "border-purple-500/20",
-                  iconColor: "text-purple-500",
+                  surface: "bg-primary/10",
+                  borderColor: "border-primary/20",
+                  iconColor: "text-primary",
                   onClick: () => router.push("/profile"),
-                },
-                {
-                  icon: FiShield,
-                  label: "Privacy",
-                  description: "Your data & rights",
-                  gradient: "from-orange-500/10 to-amber-500/10",
-                  borderColor: "border-orange-500/20",
-                  iconColor: "text-orange-500",
-                  onClick: () => router.push("/settings/privacy"),
                 },
               ].map((action, idx) => (
                 <motion.button
@@ -345,7 +302,7 @@ export default function SettingsPage() {
                   whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={action.onClick}
-                  className={`p-4 rounded-xl bg-gradient-to-br ${action.gradient} border-2 ${action.borderColor} hover:shadow-lg transition-all group text-left`}
+                  className={`p-4 rounded-xl ${action.surface} border-2 ${action.borderColor} hover:shadow-lg transition-all group text-left`}
                 >
                   <div
                     className={`p-2 rounded-lg bg-background/50 w-fit mb-3 ${action.iconColor}`}
@@ -373,55 +330,7 @@ export default function SettingsPage() {
               <FiAperture className="w-4 h-4" />
               APPEARANCE
             </h2>
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {Object.entries(THEME_PREVIEWS).map(([key, config]) => {
-                const isActive = theme === key;
-                const Icon = config.icon;
-                return (
-                  <motion.button
-                    key={key}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() =>
-                      handleTheme(key as UserPreferences["theme"])
-                    }
-                    className={`relative p-4 rounded-xl border-2 transition-all ${
-                      isActive
-                        ? "border-primary ring-4 ring-primary/20 shadow-lg"
-                        : "border-border hover:border-primary/30"
-                    }`}
-                  >
-                    {/* Preview */}
-                    <div
-                      className={`h-16 rounded-lg bg-gradient-to-br ${config.gradient} border ${config.border} mb-3 flex items-center justify-center`}
-                    >
-                      <Icon className={`w-6 h-6 ${config.color}`} />
-                    </div>
-
-                    {/* Label */}
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`font-semibold text-sm ${
-                          isActive ? "text-primary" : ""
-                        }`}
-                      >
-                        {config.name}
-                      </span>
-                      {isActive && (
-                        <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                          <FiCheckCircle className="w-3 h-3 text-primary-foreground" />
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Glow effect */}
-                    {isActive && (
-                      <div className="absolute inset-0 bg-primary/5 rounded-xl -z-10 blur-xl" />
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
+            <ThemeChoices value={theme} onChange={handleTheme} />
           </motion.div>
 
           {/* Feature Toggles */}
@@ -441,13 +350,13 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`p-2 rounded-lg ${
-                        prefs?.offlineMode ? "bg-blue-500/10" : "bg-secondary"
+                        prefs?.offlineMode ? "bg-primary/10" : "bg-secondary"
                       }`}
                     >
                       <FiDownload
                         className={`w-5 h-5 ${
                           prefs?.offlineMode
-                            ? "text-blue-500"
+                            ? "text-primary"
                             : "text-muted-foreground"
                         }`}
                       />
@@ -468,7 +377,7 @@ export default function SettingsPage() {
                       <motion.div
                         initial={{ scale: 0.8 }}
                         animate={{ scale: 1 }}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/20"
                       >
                         <FiToggleRight className="w-5 h-5" />
                         <span className="text-xs font-medium">ON</span>
@@ -496,18 +405,6 @@ export default function SettingsPage() {
               ABOUT
             </h2>
             <div className="bg-card rounded-xl border-2 border-border overflow-hidden divide-y divide-border">
-              <button
-                onClick={() => router.push("/settings/privacy")}
-                className="w-full flex items-center gap-4 p-4 hover:bg-secondary/50 transition-colors group"
-              >
-                <div className="p-2 rounded-lg bg-purple-500/10">
-                  <FiShield className="w-5 h-5 text-purple-500" />
-                </div>
-                <span className="flex-1 text-left font-medium">
-                  Privacy Policy
-                </span>
-                <FiChevronRight className="text-muted-foreground group-hover:text-primary transition-colors" />
-              </button>
 
               <div className="flex items-center gap-4 p-4">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -529,7 +426,7 @@ export default function SettingsPage() {
             className="text-center text-xs text-muted-foreground pt-4"
           >
             <p className="flex items-center justify-center gap-1">
-              Made with <FiHeart className="w-4 h-4 text-red-500" /> by Nocturne
+              Made with <FiHeart className="w-4 h-4 text-danger" /> by Nocturne
               Team
             </p>
           </motion.div>

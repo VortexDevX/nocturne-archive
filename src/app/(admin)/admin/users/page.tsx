@@ -83,14 +83,15 @@ export default function AdminUsersPage() {
   const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-md">
+    <div className="p-4 sm:p-6 space-y-6">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative w-full sm:flex-1 sm:max-w-md min-w-0">
           <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
           <Input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search by username or email"
+            aria-label="Search users"
             className="pl-9"
           />
         </div>
@@ -103,7 +104,8 @@ export default function AdminUsersPage() {
         </Button>
       </div>
 
-      <div className="border border-border rounded-xl overflow-hidden">
+      <div className="border border-border rounded-xl overflow-x-auto" role="region" aria-label="User permissions" tabIndex={0}>
+        <div className="min-w-[640px]">
         <div className="grid grid-cols-12 bg-card/70 border-b border-border px-4 py-3 text-sm font-semibold">
           <div className="col-span-4">User</div>
           <div className="col-span-4">Email</div>
@@ -121,8 +123,8 @@ export default function AdminUsersPage() {
               key={u._id}
               className="grid grid-cols-12 items-center px-4 py-3 border-b border-border text-sm"
             >
-              <div className="col-span-4 font-medium">{u.username}</div>
-              <div className="col-span-4 text-muted-foreground">{u.email}</div>
+              <div className="col-span-4 font-medium break-words pr-3">{u.username}</div>
+              <div className="col-span-4 text-muted-foreground break-words pr-3">{u.email}</div>
               <div className="col-span-2">
                 <ToggleButton
                   label="Upload"
@@ -142,6 +144,7 @@ export default function AdminUsersPage() {
             </div>
           ))
         )}
+        </div>
       </div>
 
       {totalPages > 1 && (
@@ -185,7 +188,7 @@ function ToggleButton({
       onClick={onClick}
       className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
         active
-          ? "bg-green-500/10 text-green-600 border-green-500/30"
+          ? "bg-success/10 text-success border-success/30"
           : "bg-secondary hover:bg-secondary/80"
       }`}
     >

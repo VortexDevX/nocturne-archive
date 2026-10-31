@@ -9,14 +9,14 @@ import type { ApiResponse } from "@/types";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     const session = await getSession();
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Not authenticated" } as ApiResponse,
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -25,7 +25,7 @@ export async function GET(
     if (!(await novelExists(slug))) {
       return NextResponse.json(
         { success: false, message: "Novel not found" } as ApiResponse,
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -38,7 +38,7 @@ export async function GET(
           success: false,
           message: "Failed to read novel metadata",
         } as ApiResponse,
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -50,10 +50,12 @@ export async function GET(
           slug,
           chapters,
           totalChapters: chapters.length,
-          coverImage: `/api/novels/cover/${slug}/${metadata.coverImage}`,
+          coverImage: metadata.coverImage
+            ? `/api/novels/cover/${slug}/${metadata.coverImage}`
+            : undefined,
         },
       } as ApiResponse,
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: unknown) {
     console.error("Get novel error:", error);
@@ -63,7 +65,7 @@ export async function GET(
         message: "Failed to get novel",
         error: error instanceof Error ? error.message : "Internal Server Error",
       } as ApiResponse,
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

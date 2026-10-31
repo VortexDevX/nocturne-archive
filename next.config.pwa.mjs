@@ -4,97 +4,106 @@ const config = withPWA({
   dest: "public",
   disable: process.env.NODE_ENV === "development",
   register: true,
-  skipWaiting: true,
-  runtimeCaching: [
-    {
-      urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
-      handler: "CacheFirst",
-      options: {
-        cacheName: "google-fonts",
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
-        },
-      },
-    },
-    {
-      urlPattern: /\.(?:eot|otf|ttc|ttf|woff|woff2|font.css)$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "static-font-assets",
-        expiration: {
-          maxEntries: 4,
-          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
-        },
-      },
-    },
-    {
-      urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "static-image-assets",
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60, // 24 hours
-        },
-      },
-    },
-    {
-      urlPattern: /\/_next\/image\?url=.+$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "next-image",
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 24 * 60 * 60, // 24 hours
-        },
-      },
-    },
-    {
-      urlPattern: /\.(?:js)$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "static-js-assets",
-        expiration: {
-          maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60, // 24 hours
-        },
-      },
-    },
-    {
-      urlPattern: /\.(?:css|less)$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "static-style-assets",
-        expiration: {
-          maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60, // 24 hours
-        },
-      },
-    },
-    {
-      urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "next-data",
-        expiration: {
-          maxEntries: 32,
-          maxAgeSeconds: 24 * 60 * 60, // 24 hours
-        },
-      },
-    },
-    {
-      urlPattern: /\/api\/(?:novels\/cover|user\/avatar)\/.*$/i,
-      handler: "StaleWhileRevalidate",
-      options: {
-        cacheName: "api-media-assets",
-        expiration: {
-          maxEntries: 64,
-          maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
-        },
-      },
-    },
+  cacheStartUrl: false,
+  dynamicStartUrl: false,
+  publicExcludes: [
+    "!noprecache/**/*",
+    "!ss/**/*",
+    "!logo*.png",
+    "!icon-*.png",
+    "!brand/nocturne-mark.png",
   ],
+  workboxOptions: {
+    skipWaiting: true,
+    runtimeCaching: [
+      {
+        // User-specific responses stay on the network. Offline chapters use IndexedDB.
+        urlPattern: /\/api\/(?!novels\/cover\/|user\/avatar\/)/i,
+        handler: "NetworkOnly",
+      },
+      {
+        urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,
+        handler: "CacheFirst",
+        options: {
+          cacheName: "google-fonts",
+          expiration: {
+            maxEntries: 4,
+            maxAgeSeconds: 365 * 24 * 60 * 60, // 1 year
+          },
+        },
+      },
+      {
+        urlPattern: /\.(?:eot|otf|ttc|ttf|woff|woff2|font.css)$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "static-font-assets",
+          expiration: {
+            maxEntries: 4,
+            maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+          },
+        },
+      },
+      {
+        urlPattern: /\.(?:jpg|jpeg|gif|png|svg|ico|webp)$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "static-image-assets",
+          expiration: {
+            maxEntries: 64,
+            maxAgeSeconds: 24 * 60 * 60, // 24 hours
+          },
+        },
+      },
+      {
+        urlPattern: /\/_next\/image\?url=.+$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "next-image",
+          expiration: {
+            maxEntries: 64,
+            maxAgeSeconds: 24 * 60 * 60, // 24 hours
+          },
+        },
+      },
+      {
+        urlPattern: /\.(?:js)$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "static-js-assets",
+          expiration: {
+            maxEntries: 32,
+            maxAgeSeconds: 24 * 60 * 60, // 24 hours
+          },
+        },
+      },
+      {
+        urlPattern: /\.(?:css|less)$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "static-style-assets",
+          expiration: {
+            maxEntries: 32,
+            maxAgeSeconds: 24 * 60 * 60, // 24 hours
+          },
+        },
+      },
+      {
+        urlPattern: /\/_next\/data\/.+\/.+\.json$/i,
+        handler: "NetworkOnly",
+      },
+      {
+        urlPattern: /\/api\/(?:novels\/cover|user\/avatar)\/.*$/i,
+        handler: "StaleWhileRevalidate",
+        options: {
+          cacheName: "api-media-assets",
+          expiration: {
+            maxEntries: 64,
+            maxAgeSeconds: 7 * 24 * 60 * 60, // 7 days
+          },
+        },
+      },
+    ],
+  },
 });
 
 export default config;

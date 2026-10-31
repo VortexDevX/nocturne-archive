@@ -2,36 +2,76 @@ import { promises as fs } from "fs";
 import path from "path";
 import { NovelMetadata, ChapterMetadata } from "@/types";
 
-const NOVELS_DIR = path.join(process.cwd(), "data", "novels");
+const NOVELS_DIR = path.join(process.cwd(), "uploads", "novels");
+const LEGACY_NOVELS_DIR = path.join(process.cwd(), "data", "novels");
+
+export function isSafePathSegment(value: string): boolean {
+  return (
+    typeof value === "string" &&
+    value.length > 0 &&
+    value !== "." &&
+    value !== ".." &&
+    !/[\\/\0]/.test(value) &&
+    path.basename(value) === value
+  );
+}
+
+function requireSafeSegment(value: string) {
+  if (!isSafePathSegment(value)) throw new Error("Invalid novel path");
+}
+
+function isMissing(error: unknown): boolean {
+  return (error as NodeJS.ErrnoException)?.code === "ENOENT";
+}
+
+/** Resolve existing uploads first, then verified legacy storage. Never move books. */
+export async function getNovelDirectory(slug: string): Promise<string> {
+  requireSafeSegment(slug);
+  for (const root of [NOVELS_DIR, LEGACY_NOVELS_DIR]) {
+    const directory = path.join(root, slug);
+    try {
+      if ((await fs.stat(directory)).isDirectory()) return directory;
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+    }
+  }
+  return path.join(NOVELS_DIR, slug);
+}
 
 /**
- * Get all novel folders in data/novels
+ * List both storage roots. An empty installation has no novels yet.
  */
 export async function getNovelFolders(): Promise<string[]> {
-  try {
-    const entries = await fs.readdir(NOVELS_DIR, { withFileTypes: true });
-    return entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
-  } catch (error) {
-    console.error("Error reading novels directory:", error);
-    return [];
+  const folders = new Set<string>();
+  for (const root of [NOVELS_DIR, LEGACY_NOVELS_DIR]) {
+    try {
+      await fs.stat(root);
+      const entries = await fs.readdir(root, { withFileTypes: true });
+      for (const entry of entries)
+        if (entry.isDirectory()) folders.add(entry.name);
+    } catch (error) {
+      if (!isMissing(error)) throw error;
+    }
   }
+  return [...folders].sort();
 }
 
 /**
  * Read novel metadata from folder
  */
 export async function readNovelMetadata(
-  slug: string
+  slug: string,
 ): Promise<NovelMetadata | null> {
   try {
-    const metadataPath = path.join(NOVELS_DIR, slug, "metadata.json");
+    const metadataPath = path.join(
+      await getNovelDirectory(slug),
+      "metadata.json",
+    );
     const data = await fs.readFile(metadataPath, "utf-8");
     return JSON.parse(data);
   } catch (error) {
-    console.error(`Error reading metadata for ${slug}:`, error);
-    return null;
+    if (isMissing(error)) return null;
+    throw error;
   }
 }
 
@@ -39,15 +79,18 @@ export async function readNovelMetadata(
  * Read chapters.json from novel folder
  */
 export async function readChaptersMetadata(
-  slug: string
+  slug: string,
 ): Promise<ChapterMetadata[]> {
   try {
-    const chaptersPath = path.join(NOVELS_DIR, slug, "chapters.json");
+    const chaptersPath = path.join(
+      await getNovelDirectory(slug),
+      "chapters.json",
+    );
     const data = await fs.readFile(chaptersPath, "utf-8");
     return JSON.parse(data);
   } catch (error) {
-    console.error(`Error reading chapters for ${slug}:`, error);
-    return [];
+    if (isMissing(error)) return [];
+    throw error;
   }
 }
 
@@ -56,14 +99,19 @@ export async function readChaptersMetadata(
  */
 export async function readChapterContent(
   slug: string,
-  filename: string
+  filename: string,
 ): Promise<string | null> {
   try {
-    const chapterPath = path.join(NOVELS_DIR, slug, "chapters", filename);
+    requireSafeSegment(filename);
+    const chapterPath = path.join(
+      await getNovelDirectory(slug),
+      "chapters",
+      filename,
+    );
     return await fs.readFile(chapterPath, "utf-8");
   } catch (error) {
-    console.error(`Error reading chapter ${filename} for ${slug}:`, error);
-    return null;
+    if (isMissing(error)) return null;
+    throw error;
   }
 }
 
@@ -72,9 +120,12 @@ export async function readChapterContent(
  */
 export async function writeNovelMetadata(
   slug: string,
-  metadata: NovelMetadata
+  metadata: NovelMetadata,
 ): Promise<void> {
-  const metadataPath = path.join(NOVELS_DIR, slug, "metadata.json");
+  const metadataPath = path.join(
+    await getNovelDirectory(slug),
+    "metadata.json",
+  );
   await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
 }
 
@@ -83,9 +134,12 @@ export async function writeNovelMetadata(
  */
 export async function writeChaptersMetadata(
   slug: string,
-  chapters: ChapterMetadata[]
+  chapters: ChapterMetadata[],
 ): Promise<void> {
-  const chaptersPath = path.join(NOVELS_DIR, slug, "chapters.json");
+  const chaptersPath = path.join(
+    await getNovelDirectory(slug),
+    "chapters.json",
+  );
   await fs.writeFile(chaptersPath, JSON.stringify(chapters, null, 2), "utf-8");
 }
 
@@ -93,10 +147,13 @@ export async function writeChaptersMetadata(
  * Create novel folder structure
  */
 export async function createNovelFolder(slug: string): Promise<void> {
+  requireSafeSegment(slug);
+  await fs.mkdir(NOVELS_DIR, { recursive: true });
   const novelPath = path.join(NOVELS_DIR, slug);
   const chaptersPath = path.join(novelPath, "chapters");
 
-  await fs.mkdir(novelPath, { recursive: true });
+  // Reserve the folder atomically; simultaneous imports cannot overwrite each other.
+  await fs.mkdir(novelPath);
   await fs.mkdir(chaptersPath, { recursive: true });
 }
 
@@ -105,19 +162,24 @@ export async function createNovelFolder(slug: string): Promise<void> {
  */
 export async function novelExists(slug: string): Promise<boolean> {
   try {
-    const novelPath = path.join(NOVELS_DIR, slug);
+    const novelPath = await getNovelDirectory(slug);
     await fs.access(novelPath);
     return true;
-  } catch {
-    return false;
+  } catch (error) {
+    if (isMissing(error)) return false;
+    throw error;
   }
 }
 
 /**
  * Get cover image path
  */
-export function getCoverImagePath(slug: string, filename: string): string {
-  return path.join(NOVELS_DIR, slug, filename);
+export async function getCoverImagePath(
+  slug: string,
+  filename: string,
+): Promise<string> {
+  requireSafeSegment(filename);
+  return path.join(await getNovelDirectory(slug), filename);
 }
 
 /**

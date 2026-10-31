@@ -1,1390 +1,921 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { useCallback, useEffect, useLayoutEffect, useDeferredValue, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import Image from "next/image";
+import ChapterSearch from "@/components/reader/ChapterSearch";
+import ThemeChoices from "@/components/ui/ThemeChoices";
 import {
   FiArrowLeft,
+  FiArrowRight,
+  FiBookmark,
+  FiCheck,
   FiChevronLeft,
   FiChevronRight,
-  FiSettings,
-  FiBookmark,
   FiList,
-  FiEye,
-  FiEyeOff,
-  FiSun,
-  FiType,
   FiSearch,
-  FiX,
-  FiMoreVertical,
-  FiCheckCircle,
+  FiSliders,
+  FiBookOpen,
+  FiClock,
   FiWifiOff,
-  FiAlignLeft,
-  FiDroplet,
 } from "react-icons/fi";
 import { useTheme } from "@/components/providers/ThemeProvider";
-import { useReaderStore, type ReaderFont } from "@/store/readerStore";
+import Modal from "@/components/ui/Modal";
 import BookmarkModal from "@/components/reader/BookmarkModal";
 import {
+  READER_FONTS,
+  chapterParagraphs,
+} from "@/components/reader/reader-settings";
+import { useReadingProgress } from "@/components/reader/use-reading-progress";
+import { useReaderStore } from "@/store/readerStore";
+import {
   getChapterOffline,
-  saveChapterOffline,
-  prefetchChapterOffline,
   listCachedChapterNumbers,
+  saveChapterOffline,
 } from "@/lib/storage/offline";
 
-function useVirtualList<T>(
-  items: T[],
-  itemHeight: number,
-  containerHeight: number
-) {
-  const [scrollTop, setScrollTop] = useState(0);
-
-  const totalHeight = items.length * itemHeight;
-  const startIndex = Math.max(0, Math.floor(scrollTop / itemHeight) - 5); // 5 item buffer
-  const endIndex = Math.min(
-    items.length - 1,
-    Math.ceil((scrollTop + containerHeight) / itemHeight) + 5
-  );
-
-  const visibleItems = items.slice(startIndex, endIndex + 1);
-  const offsetY = startIndex * itemHeight;
-
-  return {
-    visibleItems,
-    totalHeight,
-    offsetY,
-    onScroll: (e: React.UIEvent<HTMLDivElement>) => {
-      setScrollTop(e.currentTarget.scrollTop);
-    },
-    startIndex,
-  };
-}
-
-interface ChapterData {
+interface Chapter {
   number: number;
   title: string;
   content: string;
+  offline?: boolean;
 }
-
-interface NovelData {
+interface Novel {
   title: string;
   author: string;
   totalChapters: number;
   chapters: { number: number; title: string }[];
 }
 
-// Theme-specific accent colors
-const ACCENT_COLORS = {
-  light: [
-    { name: "Default", value: "default", bg: "bg-white", preview: "#ffffff" },
-    { name: "Warm", value: "warm", bg: "bg-[#fffdf8]", preview: "#fffdf8" },
-    { name: "Sepia", value: "sepia", bg: "bg-[#faf6ed]", preview: "#faf6ed" },
-    { name: "Cool", value: "cool", bg: "bg-[#f7f9fc]", preview: "#f7f9fc" },
-    { name: "Green", value: "green", bg: "bg-[#f5faf6]", preview: "#f5faf6" },
-  ],
-  dark: [
-    {
-      name: "Default",
-      value: "default",
-      bg: "bg-[#0f0f0f]",
-      preview: "#0f0f0f",
-    },
-    { name: "Warm", value: "warm", bg: "bg-[#1a1816]", preview: "#1a1816" },
-    { name: "Sepia", value: "sepia", bg: "bg-[#1f1b16]", preview: "#1f1b16" },
-    { name: "Cool", value: "cool", bg: "bg-[#141922]", preview: "#141922" },
-    { name: "Green", value: "green", bg: "bg-[#151918]", preview: "#151918" },
-  ],
-  night: [
-    {
-      name: "Default",
-      value: "default",
-      bg: "bg-[#0d1117]",
-      preview: "#0d1117",
-    },
-    { name: "Warm", value: "warm", bg: "bg-[#15130f]", preview: "#15130f" },
-    { name: "Sepia", value: "sepia", bg: "bg-[#18150f]", preview: "#18150f" },
-    { name: "Cool", value: "cool", bg: "bg-[#0f131a]", preview: "#0f131a" },
-    { name: "Green", value: "green", bg: "bg-[#0f1311]", preview: "#0f1311" },
-  ],
-  amoled: [
-    { name: "Default", value: "default", bg: "bg-black", preview: "#000000" },
-    { name: "Warm", value: "warm", bg: "bg-[#0a0908]", preview: "#0a0908" },
-    { name: "Sepia", value: "sepia", bg: "bg-[#0d0b08]", preview: "#0d0b08" },
-    { name: "Cool", value: "cool", bg: "bg-[#060810]", preview: "#060810" },
-    { name: "Green", value: "green", bg: "bg-[#060807]", preview: "#060807" },
-  ],
-};
-
-const FONTS = [
-  {
-    value: "inter",
-    label: "Inter",
-    family: '"Inter", ui-sans-serif, system-ui, sans-serif',
-  },
-  {
-    value: "roboto",
-    label: "Roboto",
-    family: '"Roboto", ui-sans-serif, system-ui, sans-serif',
-  },
-  {
-    value: "fira-code",
-    label: "Fira Code",
-    family: '"Fira Code", ui-monospace, monospace',
-  },
-  {
-    value: "system",
-    label: "System",
-    family: "ui-sans-serif, system-ui, -apple-system, sans-serif",
-  },
-  {
-    value: "josephin",
-    label: "Josephin Sans",
-    family: '"Josefin Sans", ui-sans-serif, system-ui, sans-serif',
-  },
-];
-
-interface VirtualChapterListProps {
-  chapters: { number: number; title: string }[];
-  currentChapter: number;
-  onChapterClick: (chapterNum: number) => void;
-}
-
-function VirtualChapterList({
-  chapters,
-  currentChapter,
-  onChapterClick,
-}: VirtualChapterListProps) {
-  const ITEM_HEIGHT = 60;
-  const containerRef = useRef<HTMLDivElement>(null);
-  const [containerHeight, setContainerHeight] = useState(600);
-
-  useEffect(() => {
-    if (containerRef.current) {
-      setContainerHeight(containerRef.current.clientHeight);
-    }
-  }, []);
-
-  const { visibleItems, totalHeight, offsetY, onScroll } =
-    useVirtualList(chapters, ITEM_HEIGHT, containerHeight);
-
-  // Auto-scroll to current chapter
-  useEffect(() => {
-    const currentIndex = chapters.findIndex(
-      (ch) => ch.number === currentChapter
-    );
-    if (currentIndex >= 0 && containerRef.current) {
-      containerRef.current.scrollTop =
-        currentIndex * ITEM_HEIGHT - containerHeight / 2;
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  if (chapters.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center py-12">
-          <FiSearch className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
-          <p className="text-muted-foreground">No chapters found</p>
-        </div>
-      </div>
-    );
-  }
-
+export default function ReaderPage() {
+  const params = useParams<{ novelId: string; chapterId: string }>();
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-y-auto px-4"
-      onScroll={onScroll}
-    >
-      <div style={{ height: totalHeight, position: "relative" }}>
-        <div style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleItems.map((ch) => {
-            const isCurrent = ch.number === currentChapter;
-            return (
-              <div
-                key={ch.number}
-                style={{ height: ITEM_HEIGHT }}
-                className="py-0.5"
-              >
-                <button
-                  onClick={() => onChapterClick(ch.number)}
-                  className={`w-full text-left p-3 rounded-lg transition-colors ${
-                    isCurrent
-                      ? "bg-primary text-primary-foreground shadow-lg"
-                      : "hover:bg-secondary"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold flex items-center gap-2">
-                        <span
-                          className={`px-2 py-0.5 rounded text-xs ${
-                            isCurrent
-                              ? "bg-primary-foreground/20"
-                              : "bg-primary/10 text-primary"
-                          }`}
-                        >
-                          {ch.number}
-                        </span>
-                        <span className="truncate">{ch.title}</span>
-                      </div>
-                    </div>
-                    {isCurrent && (
-                      <div className="text-xs px-2 py-1 bg-primary-foreground/20 rounded flex-shrink-0">
-                        Reading
-                      </div>
-                    )}
-                  </div>
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+    <ReaderSession
+      key={params.novelId}
+      novelId={params.novelId}
+      chapterId={Number(params.chapterId)}
+    />
   );
 }
 
-export default function ReaderPage() {
-  const router = useRouter();
-  const params = useParams();
-  const { theme } = useTheme();
-  const contentRef = useRef<HTMLDivElement>(null);
-  const touchStartX = useRef(0);
-  const touchStartY = useRef(0);
-
-  // Core state
-  const [chapter, setChapter] = useState<ChapterData | null>(null);
-  const [novel, setNovel] = useState<NovelData | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  // UI state
-  const [showSettings, setShowSettings] = useState(false);
-  const [showQuickSettings, setShowQuickSettings] = useState(false);
-  const [showChapterList, setShowChapterList] = useState(false);
-  const [showBookmarkModal, setShowBookmarkModal] = useState(false);
-  const [selectedTextForBookmark, setSelectedTextForBookmark] = useState("");
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [minimalMode, setMinimalMode] = useState(false);
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const [chapterSearch, setChapterSearch] = useState("");
-  const lastScrollY = useRef(0);
-
-  // Offline
+function ReaderSession({
+  novelId,
+  chapterId,
+}: {
+  novelId: string;
+  chapterId: number;
+}) {
+  const [novel, setNovel] = useState<Novel | null>(null);
+  const [chapter, setChapter] = useState<Chapter | null>(null);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
   const [offlineMode, setOfflineMode] = useState(false);
-  const [usedOffline, setUsedOffline] = useState(false);
+  const cache = useRef(new Map<number, Promise<Chapter>>());
 
-  // Settings from store
+  useEffect(() => {
+    const controller = new AbortController();
+    const initialSettings = useReaderStore.getState();
+    void fetch("/api/user/preferences", {
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then((r) => r.json())
+      .then((result) => {
+        if (!controller.signal.aborted && result.success) {
+          setOfflineMode(Boolean(result.data.offlineMode));
+          const { fontSize, fontFamily, lineHeight, brightness, accentColor } =
+            result.data;
+          const current = useReaderStore.getState();
+          const unchanged = (
+            [
+              "fontSize",
+              "fontFamily",
+              "lineHeight",
+              "brightness",
+              "accentColor",
+            ] as const
+          ).every((key) => current[key] === initialSettings[key]);
+          if (unchanged)
+            useReaderStore.setState({
+              fontSize,
+              fontFamily,
+              lineHeight,
+              brightness,
+              accentColor,
+            });
+        }
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
+
+  // Metadata loads independently of chapters; large tables of contents load once.
+  useEffect(() => {
+    const controller = new AbortController();
+    async function loadNovel() {
+      try {
+        const response = await fetch(
+          `/api/novels/${encodeURIComponent(novelId)}`,
+          { signal: controller.signal },
+        );
+        const result = await response.json();
+        if (!response.ok || !result.success)
+          throw new Error("Novel unavailable");
+        if (!controller.signal.aborted) setNovel(result.data);
+      } catch {
+        if (controller.signal.aborted) return;
+        const numbers = await listCachedChapterNumbers(novelId).catch(() => []);
+        if (controller.signal.aborted) return;
+        if (numbers.length)
+          setNovel({
+            title: "Offline reading",
+            author: "Downloaded chapters",
+            totalChapters: Math.max(...numbers),
+            chapters: numbers.map((number) => ({
+              number,
+              title: `Chapter ${number}`,
+            })),
+          });
+        else
+          setError(
+            "This novel couldn't be loaded. Check your connection and try again.",
+          );
+      }
+    }
+    void loadNovel();
+    return () => controller.abort();
+  }, [novelId, retry]);
+
+  const loadChapter = useCallback(
+    (number: number) => {
+      const existing = cache.current.get(number);
+      if (existing) return existing;
+      const request = (async (): Promise<Chapter> => {
+        try {
+          const response = await fetch(
+            `/api/novels/${encodeURIComponent(novelId)}/chapter/${number}`,
+          );
+          const result = await response.json();
+          if (!response.ok || !result.success)
+            throw new Error(result.message || "Chapter unavailable");
+          return result.data;
+        } catch (failure) {
+          const saved = await getChapterOffline(novelId, number).catch(
+            () => null,
+          );
+          if (saved) return { ...saved, offline: true };
+          throw failure;
+        }
+      })();
+      cache.current.set(number, request);
+      if (cache.current.size > 3)
+        cache.current.delete(cache.current.keys().next().value!);
+      void request.catch(() => {
+        cache.current.delete(number);
+      });
+      return request;
+    },
+    [novelId],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!Number.isInteger(chapterId) || chapterId < 1) return;
+    void loadChapter(chapterId)
+      .then((data) => {
+        if (!cancelled) {
+          setChapter({ ...data, number: chapterId });
+          setError("");
+        }
+      })
+      .catch(() => {
+        if (!cancelled)
+          setError(
+            "This chapter isn't available. Reconnect or choose a downloaded chapter.",
+          );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [chapterId, loadChapter, retry]);
+
+  useEffect(() => {
+    if (!chapter || !novel || chapter.number !== chapterId) return;
+    if (offlineMode && !chapter.offline)
+      void saveChapterOffline(
+        novelId,
+        chapterId,
+        chapter.title,
+        chapter.content,
+      ).catch(() => {});
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    if (connection?.saveData || !navigator.onLine) return;
+    const next = novel.chapters.find((item) => item.number > chapterId);
+    if (!next) return;
+    const timer = window.setTimeout(() => {
+      void loadChapter(next.number)
+        .then((data) => {
+          if (offlineMode)
+            void saveChapterOffline(
+              novelId,
+              next.number,
+              data.title,
+              data.content,
+            ).catch(() => {});
+        })
+        .catch(() => {});
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [chapter, novel, chapterId, novelId, offlineMode, loadChapter]);
+
+  if (!Number.isInteger(chapterId) || chapterId < 1 || error)
+    return (
+      <div className="reader-empty">
+        <FiWifiOff className="h-8 w-8 text-primary" />
+        <h1>Let's get you back to your book.</h1>
+        <p>{error || "Choose a valid chapter to start reading."}</p>
+        <div className="flex gap-3">
+          <Link className="reader-action" href={`/novel/${novelId}`}>
+            View chapters
+          </Link>
+          <button
+            className="reader-action"
+            onClick={() => {
+              setError("");
+              setRetry((n) => n + 1);
+            }}
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  if (!novel || chapter?.number !== chapterId)
+    return (
+      <div className="reader-empty" role="status">
+        <span className="eyebrow">NOCTURNE / READER</span>
+        <h1>Opening your next escape.</h1>
+        <div className="w-64 space-y-3 animate-pulse" aria-hidden="true">
+          {[100, 92, 98, 65].map((width) => (
+            <div
+              key={width}
+              className="h-2 rounded bg-secondary"
+              style={{ width: `${width}%` }}
+            />
+          ))}
+        </div>
+        <span className="text-sm text-muted-foreground">
+          Loading chapter {chapterId}…
+        </span>
+      </div>
+    );
+  return (
+    <ChapterReader
+      key={`${novelId}:${chapterId}`}
+      novelId={novelId}
+      novel={novel}
+      chapter={chapter}
+    />
+  );
+}
+
+function ChapterReader({
+  novelId,
+  novel,
+  chapter,
+}: {
+  novelId: string;
+  novel: Novel;
+  chapter: Chapter;
+}) {
+  const router = useRouter();
+  const [chromeHidden, setChromeHidden] = useState(false);
+  const pointerStart = useRef({ x: 0, y: 0, scroll: 0 });
+  const { theme, setTheme } = useTheme();
+  const settings = useReaderStore();
   const {
     fontSize,
     fontFamily,
     lineHeight,
     brightness,
     accentColor,
-    setFontSize,
-    setFontFamily,
-    setLineHeight,
-    setBrightness,
-    setAccentColor,
-    setReadingPosition,
-  } = useReaderStore();
-
-  const novelId = params.novelId as string;
-  const chapterId = parseInt(params.chapterId as string, 10);
-
-  // Load offlineMode preference
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch("/api/user/preferences");
-        const data = await res.json();
-        if (data?.success) setOfflineMode(!!data.data.offlineMode);
-      } catch {
-        // ignore
+    contentWidth,
+    readingMode,
+  } = settings;
+  const viewport = useRef<HTMLDivElement>(null);
+  const article = useRef<HTMLElement>(null);
+  const fractionRef = useRef(0);
+  const [pages, setPages] = useState({ current: 1, total: 1 });
+  const [panel, setPanel] = useState<"settings" | "chapters" | null>(null);
+  const [findOpen, setFindOpen] = useState(false);
+  const [findQuery, setFindQuery] = useState("");
+  const [matchIndex, setMatchIndex] = useState(0);
+  const deferredQuery = useDeferredValue(findQuery);
+  const searchTrigger = useRef<HTMLButtonElement>(null);
+  const [bookmark, setBookmark] = useState(false);
+  const [selectedText, setSelectedText] = useState("");
+  const [search, setSearch] = useState("");
+  const [chapterWindow, setChapterWindow] = useState(0);
+  const chaptersViewport = useCallback((el: HTMLDivElement | null) => {
+    if (el) el.scrollTop = Math.max(0, novel.chapters.findIndex((ch) => ch.number === chapter.number) * 60 - 120);
+  }, [novel.chapters, chapter.number]);
+  const { resume, record, markRestored } = useReadingProgress(
+    novelId,
+    chapter.number,
+    novel.totalChapters,
+  );
+  const paragraphs = useMemo(
+    () => chapterParagraphs(chapter.content),
+    [chapter.content],
+  );
+  const found = useMemo(() => {
+    const needle = deferredQuery.trim().toLowerCase();
+    let count = 0;
+    const text = paragraphs.map((paragraph) => {
+      if (!needle) return paragraph;
+      const parts: React.ReactNode[] = [];
+      const lower = paragraph.toLowerCase();
+      let cursor = 0;
+      let offset = lower.indexOf(needle);
+      while (offset !== -1 && count < 5000) {
+        parts.push(paragraph.slice(cursor, offset));
+        const index = count++;
+        parts.push(<mark key={index} data-reader-match={index} className={index === matchIndex ? "current-match" : ""}>{paragraph.slice(offset, offset + needle.length)}</mark>);
+        cursor = offset + needle.length;
+        offset = lower.indexOf(needle, cursor);
       }
-    })();
-  }, []);
-
-  // Get current theme's accent colors
-  const getCurrentThemeAccents = () => {
-    return (
-      ACCENT_COLORS[theme as keyof typeof ACCENT_COLORS] || ACCENT_COLORS.light
-    );
-  };
-
-  // Get current accent background class
-  const getAccentClass = () => {
-    const themeAccents = getCurrentThemeAccents();
-    const accent =
-      themeAccents.find((c) => c.value === accentColor) || themeAccents[0];
-    return accent.bg;
-  };
-
-  // Get current font
-  const getCurrentFont = () => {
-    return FONTS.find((f) => f.value === fontFamily)?.family || FONTS[0].family;
-  };
-
-  // Format content preserving line breaks
-  const formatContent = (content: string) => {
-    if (!content) return [];
-    const paragraphs = content.split(/\n\n+/);
-    return paragraphs
-      .map((paragraph) =>
-        paragraph
-          .trim()
-          .split("\n")
-          .map((line) => line.trim())
-          .join("\n")
-      )
-      .filter((p) => p.length > 0);
-  };
-
-  // Fetch chapter and novel with offline fallback
+      parts.push(paragraph.slice(cursor));
+      return parts;
+    });
+    return { text, count };
+  }, [paragraphs, deferredQuery, matchIndex]);
   useEffect(() => {
+    if (!findOpen || !deferredQuery.trim()) return;
+    const el = viewport.current;
+    const match = article.current?.querySelector<HTMLElement>(`[data-reader-match="${matchIndex}"]`);
+    if (!el || !match) return;
+    const box = match.getBoundingClientRect();
+    const frame = el.getBoundingClientRect();
+    if (readingMode === "paged") el.scrollLeft = Math.floor((el.scrollLeft + box.left - frame.left) / el.clientWidth) * el.clientWidth;
+    else el.scrollTop += box.top - frame.top - el.clientHeight / 3;
+  }, [findOpen, deferredQuery, matchIndex, found.count, readingMode]);
+  const words = useMemo(
+    () => chapter.content.trim().split(/\s+/).filter(Boolean).length,
+    [chapter.content],
+  );
+  const font =
+    READER_FONTS.find((f) => f.value === fontFamily) || READER_FONTS[0];
+  const filteredChapters = useMemo(
+    () =>
+      novel.chapters.filter((ch) =>
+        `${ch.number} ${ch.title}`.toLowerCase().includes(search.toLowerCase()),
+      ),
+    [novel.chapters, search],
+  );
+  const currentIndex = novel.chapters.findIndex(
+    (ch) => ch.number === chapter.number,
+  );
+  const previous = novel.chapters[currentIndex - 1];
+  const next = novel.chapters[currentIndex + 1];
+
+  const measure = useCallback(() => {
+    const el = viewport.current;
+    if (!el) return;
+    const paged = readingMode === "paged";
+    const extent = paged
+      ? el.scrollWidth - el.clientWidth
+      : el.scrollHeight - el.clientHeight;
+    const position = paged ? el.scrollLeft : el.scrollTop;
+    const fraction =
+      extent > 1 ? Math.min(1, Math.max(0, position / extent)) : 1;
+    fractionRef.current = fraction;
+    if (paged)
+      setPages({
+        current: Math.round(el.scrollLeft / el.clientWidth) + 1,
+        total: Math.max(1, Math.round(el.scrollWidth / el.clientWidth)),
+      });
+    record(position, fraction);
+  }, [readingMode, record]);
+
+  useEffect(() => {
+    if (!resume || !viewport.current) return;
     let cancelled = false;
-    const fetchData = async () => {
-      setLoading(true);
-      setUsedOffline(false);
-      try {
-        const chapterRes = await fetch(
-          `/api/novels/${novelId}/chapter/${chapterId}`
-        );
-        const chapterJson = await chapterRes.json();
-
-        if (chapterRes.ok && chapterJson?.success) {
-          if (cancelled) return;
-          setChapter({
-            number: chapterJson.data.number,
-            title: chapterJson.data.title,
-            content: chapterJson.data.content,
-          });
-          if (offlineMode) {
-            try {
-              await saveChapterOffline(
-                novelId,
-                chapterId,
-                chapterJson.data.title,
-                chapterJson.data.content
-              );
-            } catch {}
-          }
-        } else {
-          const offline = await getChapterOffline(novelId, chapterId);
-          if (offline) {
-            if (cancelled) return;
-            setUsedOffline(true);
-            setChapter({
-              number: chapterId,
-              title: offline.title,
-              content: offline.content,
-            });
-          } else {
-            window.location.href = "/offline";
-            return;
-          }
-        }
-
-        try {
-          const novelRes = await fetch(`/api/novels/${novelId}`);
-          const novelJson = await novelRes.json();
-          if (novelRes.ok && novelJson?.success) {
-            if (cancelled) return;
-            setNovel({
-              title: novelJson.data.title,
-              author: novelJson.data.author,
-              totalChapters: novelJson.data.totalChapters,
-              chapters: novelJson.data.chapters,
-            });
-          } else {
-            const nums = await listCachedChapterNumbers(novelId);
-            if (cancelled) return;
-            if (nums.length > 0) {
-              setNovel({
-                title: "Offline Novel",
-                author: "",
-                totalChapters: Math.max(...nums),
-                chapters: nums.map((n) => ({
-                  number: n,
-                  title: `Chapter ${n}`,
-                })),
-              });
-            }
-          }
-        } catch {
-          const nums = await listCachedChapterNumbers(novelId);
-          if (!cancelled && nums.length > 0) {
-            setNovel({
-              title: "Offline Novel",
-              author: "",
-              totalChapters: Math.max(...nums),
-              chapters: nums.map((n) => ({ number: n, title: `Chapter ${n}` })),
-            });
-          }
-        }
-      } catch {
-        const offline = await getChapterOffline(novelId, chapterId);
-        if (offline) {
-          if (!cancelled) {
-            setUsedOffline(true);
-            setChapter({
-              number: chapterId,
-              title: offline.title,
-              content: offline.content,
-            });
-          }
-          const nums = await listCachedChapterNumbers(novelId);
-          if (!cancelled && nums.length > 0) {
-            setNovel({
-              title: "Offline Novel",
-              author: "",
-              totalChapters: Math.max(...nums),
-              chapters: nums.map((n) => ({ number: n, title: `Chapter ${n}` })),
-            });
-          }
-        } else {
-          window.location.href = "/offline";
-          return;
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-          setScrollProgress(0);
-        }
-      }
-    };
-
-    fetchData();
+    const el = viewport.current;
+    void document.fonts.ready.then(() => {
+      if (cancelled) return;
+      const extent =
+        readingMode === "paged"
+          ? el.scrollWidth - el.clientWidth
+          : el.scrollHeight - el.clientHeight;
+      const restored =
+        resume.fraction === undefined
+          ? resume.position
+          : resume.fraction * extent;
+      if (readingMode === "paged")
+        el.scrollLeft = Math.round(restored / el.clientWidth) * el.clientWidth;
+      else el.scrollTop = restored;
+      markRestored();
+      measure();
+    });
     return () => {
       cancelled = true;
     };
-  }, [novelId, chapterId, offlineMode]);
-
-  // Prefetch next chapter
-  useEffect(() => {
-    if (!offlineMode || !novel) return;
-    const next = chapterId + 1;
-    if (next <= (novel?.totalChapters || 0)) {
-      prefetchChapterOffline(novelId, next).catch(() => {});
-    }
-  }, [offlineMode, novel, chapterId, novelId]);
-
-  // Auto-hide header on scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!contentRef.current || minimalMode) return;
-
-      const { scrollTop, scrollHeight, clientHeight } = contentRef.current;
-      const progress =
-        (scrollTop / Math.max(1, scrollHeight - clientHeight)) * 100;
-      setScrollProgress(Math.min(100, Math.max(0, progress)));
-
-      const currentScrollY = scrollTop;
-      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
-        setHeaderVisible(false);
-      } else if (currentScrollY < lastScrollY.current) {
-        setHeaderVisible(true);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    const el = contentRef.current;
-    el?.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => el?.removeEventListener("scroll", handleScroll);
-  }, [chapter, minimalMode]);
-
-  // Save reading progress
-  useEffect(() => {
-    const saveProgress = async () => {
-      const position = contentRef.current?.scrollTop || 0;
-      setReadingPosition(novelId, chapterId, position);
-      try {
-        await fetch("/api/reading/progress", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ novelId, chapterNumber: chapterId, position }),
-        });
-      } catch {}
-    };
-    const interval = setInterval(saveProgress, 10000);
-    return () => {
-      clearInterval(interval);
-      saveProgress();
-    };
-  }, [novelId, chapterId, setReadingPosition]);
-
-  // Restore scroll position
-  useEffect(() => {
-    if (!chapter || loading) return;
-    const restorePosition = async () => {
-      try {
-        const res = await fetch(
-          `/api/reading/progress?novelId=${encodeURIComponent(novelId)}`
-        );
-        const data = await res.json();
-        if (
-          data?.success &&
-          data.data &&
-          data.data.currentChapter === chapterId
-        ) {
-          setTimeout(() => {
-            contentRef.current?.scrollTo({
-              top: data.data.currentPosition || 0,
-              behavior: "auto",
-            });
-          }, 100);
-        } else {
-          setTimeout(() => {
-            contentRef.current?.scrollTo({ top: 0, behavior: "auto" });
-          }, 100);
-        }
-      } catch {}
-    };
-    restorePosition();
-  }, [chapter, chapterId, novelId, loading]);
-
-  // Swipe gestures for chapter navigation
-  useEffect(() => {
-    const handleTouchStart = (e: TouchEvent) => {
-      touchStartX.current = e.touches[0].clientX;
-      touchStartY.current = e.touches[0].clientY;
-    };
-
-    const handleTouchEnd = (e: TouchEvent) => {
-      const touchEndX = e.changedTouches[0].clientX;
-      const touchEndY = e.changedTouches[0].clientY;
-      const diffX = touchStartX.current - touchEndX;
-      const diffY = touchStartY.current - touchEndY;
-
-      if (Math.abs(diffX) > Math.abs(diffY) && Math.abs(diffX) > 100) {
-        if (diffX > 0) {
-          navigateChapter("next");
-        } else {
-          navigateChapter("prev");
-        }
-      }
-    };
-
-    const el = contentRef.current;
-    el?.addEventListener("touchstart", handleTouchStart, { passive: true });
-    el?.addEventListener("touchend", handleTouchEnd, { passive: true });
-    return () => {
-      el?.removeEventListener("touchstart", handleTouchStart);
-      el?.removeEventListener("touchend", handleTouchEnd);
-    };
+    // Restore once; subsequent typography changes preserve the current fraction below.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [chapterId, novel, novelId]);
+  }, [resume]);
 
-  // Navigation
-  const navigateChapter = useCallback(
-    (direction: "prev" | "next") => {
-      if (direction === "prev" && chapterId > 1) {
-        router.push(`/reader/${novelId}/${chapterId - 1}`);
-      } else if (
-        direction === "next" &&
-        novel &&
-        chapterId < novel.totalChapters
-      ) {
-        router.push(`/reader/${novelId}/${chapterId + 1}`);
-      }
+  useEffect(() => {
+    const el = viewport.current;
+    if (!el) return;
+    const fraction = fractionRef.current;
+    const frame = requestAnimationFrame(() => {
+      if (readingMode === "paged")
+        el.scrollLeft =
+          Math.round(
+            (fraction * (el.scrollWidth - el.clientWidth)) / el.clientWidth,
+          ) * el.clientWidth;
+      else el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
+      measure();
+    });
+    const observer = new ResizeObserver(() => measure());
+    observer.observe(el);
+    if (article.current) observer.observe(article.current);
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [fontSize, fontFamily, lineHeight, contentWidth, readingMode, measure]);
+
+  useLayoutEffect(() => {
+    const el = viewport.current;
+    if (!el) return;
+    const fraction = fractionRef.current;
+    if (readingMode === "paged") el.scrollLeft = Math.round(fraction * (el.scrollWidth - el.clientWidth) / el.clientWidth) * el.clientWidth;
+    else el.scrollTop = fraction * (el.scrollHeight - el.clientHeight);
+    measure();
+  }, [chromeHidden, readingMode, measure]);
+
+  const navigate = useCallback(
+    (number: number) => {
+      router.push(`/reader/${novelId}/${number}`, { scroll: false });
     },
-    [chapterId, novel, novelId, router]
+    [novelId, router],
+  );
+  const turnPage = useCallback(
+    (direction: -1 | 1) => {
+      const el = viewport.current;
+      if (!el) return;
+      if (readingMode === "paged") {
+        const target = el.scrollLeft + direction * el.clientWidth;
+        if (target > el.scrollWidth - el.clientWidth + 1 && next)
+          navigate(next.number);
+        else if (target < -1 && previous) navigate(previous.number);
+        else el.scrollTo({ left: Math.max(0, target), behavior: "instant" });
+      } else
+        el.scrollBy({
+          top: direction * el.clientHeight * 0.85,
+          behavior: "instant",
+        });
+    },
+    [readingMode, next, previous, navigate],
   );
 
-  // Scroll handler for scrubber
-  const handleScrubberChange = (value: number) => {
-    if (!contentRef.current) return;
-    const { scrollHeight, clientHeight } = contentRef.current;
-    const maxScroll = scrollHeight - clientHeight;
-    contentRef.current.scrollTo({
-      top: (value / 100) * maxScroll,
-      behavior: "auto",
-    });
-  };
-
-  // Keyboard shortcuts
   useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && findOpen) {
+        setFindOpen(false); setFindQuery(""); searchTrigger.current?.focus(); return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        event.preventDefault(); setChromeHidden(false); setFindOpen(true); return;
+      }
+      if (event.key === "Escape" && !panel && !bookmark) {
+        setChromeHidden(false);
+        return;
+      }
       if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
+        panel ||
+        bookmark ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        (event.target instanceof HTMLElement &&
+          event.target.closest(
+            "input, textarea, select, button, a, [contenteditable=true]",
+          ))
       )
         return;
-      switch (e.key) {
-        case "ArrowLeft":
-          navigateChapter("prev");
-          break;
-        case "ArrowRight":
-          navigateChapter("next");
-          break;
-        case "m":
-        case "M":
-          setMinimalMode((prev) => !prev);
-          break;
-        case "s":
-        case "S":
-          setShowSettings((prev) => !prev);
-          break;
-        case "Escape":
-          if (minimalMode) setMinimalMode(false);
-          setShowSettings(false);
-          setShowChapterList(false);
-          setShowQuickSettings(false);
-          break;
+      if (event.key === "ArrowRight" || event.key === "PageDown") {
+        event.preventDefault();
+        turnPage(1);
       }
+      if (event.key === "ArrowLeft" || event.key === "PageUp") {
+        event.preventDefault();
+        turnPage(-1);
+      }
+      if (event.key.toLowerCase() === "m")
+        setChromeHidden((hidden) => !hidden);
+      if (event.key.toLowerCase() === "s") setPanel("settings");
+      if (event.key === "Escape")
+        setChromeHidden(false);
     };
-    window.addEventListener("keydown", handleKeyPress);
-    return () => window.removeEventListener("keydown", handleKeyPress);
-  }, [navigateChapter, minimalMode]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [panel, bookmark, findOpen, turnPage]);
 
-  // Filter chapters based on search
-  const filteredChapters =
-    novel?.chapters.filter(
-      (ch) =>
-        ch.title.toLowerCase().includes(chapterSearch.toLowerCase()) ||
-        ch.number.toString().includes(chapterSearch)
-    ) || [];
+  const firstSettings = useRef(true);
+  const pendingPreferences = useRef<string | null>(null);
+  useEffect(() => {
+    if (firstSettings.current) {
+      firstSettings.current = false;
+      return;
+    }
+    const body = JSON.stringify({
+      fontSize,
+      fontFamily,
+      lineHeight,
+      brightness,
+      accentColor,
+    });
+    pendingPreferences.current = body;
+    const timer = window.setTimeout(() => {
+      pendingPreferences.current = null;
+      void fetch("/api/user/preferences", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }).catch(() => {});
+    }, 600);
+    return () => window.clearTimeout(timer);
+  }, [fontSize, fontFamily, lineHeight, brightness, accentColor]);
 
-  if (loading) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <div className="inline-block w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-          <p className="text-muted-foreground">Loading chapter...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(
+    () => () => {
+      if (pendingPreferences.current)
+        void fetch("/api/user/preferences", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: pendingPreferences.current,
+          keepalive: true,
+        }).catch(() => {});
+    },
+    [],
+  );
 
-  if (!chapter || !novel) {
-    return (
-      <div className="h-screen flex items-center justify-center bg-background">
-        <div className="text-center space-y-4">
-          <p className="text-2xl">Chapter not found</p>
-          <button
-            onClick={() => router.back()}
-            className="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-          >
-            Go Back
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const formattedContent = formatContent(chapter.content);
+  const openChapters = () => {
+    setSearch("");
+    setChapterWindow(Math.max(0, currentIndex * 60 - 120));
+    setPanel("chapters");
+  };
+  const windowStart = Math.max(0, Math.floor(chapterWindow / 60) - 4);
+  const visibleChapters = filteredChapters.slice(windowStart, windowStart + 20);
 
   return (
-    <div
-      className={`min-h-screen transition-colors duration-200 ${getAccentClass()}`}
-      style={{ filter: `brightness(${brightness}%)` }}
-    >
-      {/* Progress bar */}
-      <div className="fixed top-0 left-0 right-0 h-1 bg-border/30 z-[60]">
-        <motion.div
-          className="h-full bg-gradient-to-r from-primary to-purple-500"
-          initial={{ width: 0 }}
-          animate={{
-            width: `${(chapterId / Math.max(1, novel.totalChapters)) * 100}%`,
-          }}
-          transition={{ duration: 0.3 }}
-        />
+    <div className={`reader-shell reader-tint-${accentColor} ${chromeHidden ? "is-focused" : ""}`}
+      onPointerDown={(event) => { pointerStart.current = { x: event.clientX, y: event.clientY, scroll: viewport.current?.scrollTop || viewport.current?.scrollLeft || 0 }; }}
+      onClick={(event) => {
+        if (panel || bookmark || event.detail > 1 || !(event.target instanceof HTMLElement) ||
+          event.target.closest("button, a, input, select, textarea, [role=dialog], .chapter-search")) return;
+        if (window.getSelection()?.toString().trim()) return;
+        const start = pointerStart.current;
+        if (event.detail !== 0 && (Math.hypot(event.clientX - start.x, event.clientY - start.y) > 8 ||
+          Math.abs((viewport.current?.scrollTop || viewport.current?.scrollLeft || 0) - start.scroll) > 8)) return;
+        setChromeHidden((hidden) => !hidden);
+      }}>
+      <header className="reader-toolbar">
+        <Link href={`/novel/${novelId}`} className="reader-back" aria-label="Back to novel">
+          <FiArrowLeft aria-hidden="true" /><span>Back to book</span>
+        </Link>
+        <div className="reader-book-title">
+          <span className="eyebrow">NOW READING</span>
+          <Link href={`/novel/${novelId}`}>{novel.title}</Link>
+        </div>
+        <span className="reader-tap-hint text-xs text-muted-foreground text-right">Tap page to hide controls</span>
+      </header>
+
+      {findOpen && <ChapterSearch query={findQuery} onQuery={(value) => { setFindQuery(value); setMatchIndex(0); }}
+        current={matchIndex} total={found.count} onMove={(direction) => setMatchIndex((index) => found.count ? (index + direction + found.count) % found.count : 0)}
+        onClose={() => { setFindOpen(false); setFindQuery(""); searchTrigger.current?.focus(); }} />}
+      <div className="reader-workspace">
+        <aside className="reader-margin" aria-label="Book information">
+          <Image src="/brand/nocturne-mark-64.png" alt="" width={32} height={32} />
+          <span className="reader-imprint">Nocturne</span>
+          <div className="reader-margin-rule" />
+          <p className="eyebrow">YOUR PLACE</p>
+          <p className="reader-chapter-number">{String(chapter.number).padStart(2, "0")}</p>
+          <p className="text-xs text-muted-foreground">of {novel.totalChapters.toLocaleString()} chapters</p>
+          <p className="reader-margin-author">{novel.author}</p>
+          {chapter.offline && <span className="inline-flex items-center gap-2 text-xs text-muted-foreground"><FiWifiOff />Offline copy</span>}
+        </aside>
+
+        <div className="reader-stage" style={{ maxWidth: contentWidth + 64 }}>
+          <div ref={viewport} className={`reader-viewport ${readingMode === "paged" ? "reader-paged" : ""}`}
+            onScroll={measure} tabIndex={0} aria-label="Chapter text">
+            <article ref={article} className="reader-article" style={{ fontSize, lineHeight, fontFamily: font.family, filter: `brightness(${brightness}%)` }}>
+              <header className="reader-chapter-heading">
+                <span className="eyebrow">CHAPTER {String(chapter.number).padStart(2, "0")}</span>
+                <h1>{chapter.title}</h1>
+                <div className="reader-chapter-meta">
+                  <span><FiClock aria-hidden="true" />{Math.max(1, Math.ceil(words / 230))} min read</span>
+                  <span>{words.toLocaleString()} words</span>
+                  {chapter.offline && <span><FiWifiOff aria-hidden="true" />Offline</span>}
+                </div>
+                <div className="reader-heading-rule" aria-hidden="true" />
+              </header>
+              {found.text.map((paragraph, index) => (
+                <p key={index} className="reader-paragraph">{paragraph}</p>
+              ))}
+              <div className="reader-chapter-end">
+                <FiBookOpen className="mx-auto mb-4 text-primary" aria-hidden="true" />
+                <span className="eyebrow">CHAPTER COMPLETE</span>
+                <p>{next ? next.title : "You’ve reached the last available chapter."}</p>
+                {next ? <button className="reader-action" onClick={() => navigate(next.number)}>Continue to chapter {next.number}<FiArrowRight /></button>
+                  : <Link className="reader-action" href={`/novel/${novelId}`}>Back to novel<FiCheck /></Link>}
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <nav className="reader-tools" aria-label="Reader tools">
+          <button ref={searchTrigger} className="reader-tool" aria-label="Search chapter text" aria-expanded={findOpen} onClick={() => setFindOpen((open) => !open)}><FiSearch aria-hidden="true" /><span>Find</span></button>
+          <button className="reader-tool" onClick={openChapters} aria-label="Open chapters" aria-haspopup="dialog" aria-expanded={panel === "chapters"}>
+            <FiList aria-hidden="true" /><span>Contents</span>
+          </button>
+          <button className="reader-tool" onClick={() => { setSelectedText(window.getSelection()?.toString() || ""); setBookmark(true); }}
+            aria-label="Bookmark passage" aria-haspopup="dialog">
+            <FiBookmark aria-hidden="true" /><span>Bookmark</span>
+          </button>
+          <button className="reader-tool" onClick={() => setPanel("settings")} aria-label="Reading settings" aria-haspopup="dialog" aria-expanded={panel === "settings"}>
+            <FiSliders aria-hidden="true" /><span>Appearance</span>
+          </button>
+        </nav>
       </div>
 
-      {/* Top Header - Auto-hiding */}
-      <AnimatePresence>
-        {!minimalMode && headerVisible && (
-          <motion.header
-            initial={{ y: -100 }}
-            animate={{ y: 0 }}
-            exit={{ y: -100 }}
-            transition={{ duration: 0.2 }}
-            className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-b border-border shadow-lg"
-          >
-            <div className="h-14 flex items-center px-3 sm:px-4 gap-2">
-              <button
-                onClick={() => router.push(`/novel/${novelId}`)}
-                className="p-2 rounded-lg hover:bg-secondary transition-colors flex-shrink-0"
-              >
-                <FiArrowLeft className="w-5 h-5" />
-              </button>
 
-              <div className="flex-1 min-w-0">
-                <h1 className="font-semibold text-sm truncate">
-                  {novel.title}
-                </h1>
-                <p className="text-xs text-muted-foreground truncate">
-                  Chapter {chapterId} of {novel.totalChapters}
-                </p>
-              </div>
-
-              {usedOffline && (
-                <div className="px-2 py-1 text-xs rounded-md bg-orange-500/15 text-orange-500 border border-orange-500/30 flex items-center gap-1 flex-shrink-0">
-                  <FiWifiOff className="w-3 h-3" />
-                  <span className="hidden sm:inline">Offline</span>
-                </div>
-              )}
-
-              <div className="flex items-center gap-1 flex-shrink-0">
-                <button
-                  onClick={() => setShowChapterList(true)}
-                  className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                  title="Chapters"
-                >
-                  <FiList className="w-5 h-5" />
-                </button>
-                <button
-                  onClick={() => setShowQuickSettings(!showQuickSettings)}
-                  className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                  title="Quick Settings"
-                >
-                  <FiMoreVertical className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-          </motion.header>
-        )}
-      </AnimatePresence>
-
-      {/* Quick Settings Dropdown */}
-      <AnimatePresence>
-        {showQuickSettings && !minimalMode && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[45]"
-              onClick={() => setShowQuickSettings(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
-              className="fixed top-16 right-3 sm:right-4 z-50 w-80 bg-card border-2 border-border rounded-xl shadow-2xl overflow-hidden"
-            >
-              <div className="p-4 space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <FiSun className="w-4 h-4 text-orange-500" />
-                      Brightness
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      {brightness}%
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={50}
-                    max={120}
-                    value={brightness}
-                    onChange={(e) => setBrightness(parseInt(e.target.value))}
-                    className="w-full accent-primary"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <FiType className="w-4 h-4 text-blue-500" />
-                      Font Size
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      {fontSize}px
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={14}
-                    max={28}
-                    value={fontSize}
-                    onChange={(e) => setFontSize(parseInt(e.target.value))}
-                    className="w-full accent-primary"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium flex items-center gap-2">
-                      <FiAlignLeft className="w-4 h-4 text-green-500" />
-                      Line Spacing
-                    </label>
-                    <span className="text-xs text-muted-foreground">
-                      {lineHeight}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1.4}
-                    max={2.4}
-                    step={0.1}
-                    value={lineHeight}
-                    onChange={(e) => setLineHeight(parseFloat(e.target.value))}
-                    className="w-full accent-primary"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border">
-                  <button
-                    onClick={() => {
-                      setShowQuickSettings(false);
-                      setShowSettings(true);
-                    }}
-                    className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <FiSettings className="w-4 h-4" />
-                    All Settings
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedTextForBookmark(
-                        window.getSelection()?.toString() || ""
-                      );
-                      setShowBookmarkModal(true);
-                      setShowQuickSettings(false);
-                    }}
-                    className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium flex items-center justify-center gap-2"
-                  >
-                    <FiBookmark className="w-4 h-4" />
-                    Bookmark
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Floating Minimal Mode Toggle */}
-      <AnimatePresence>
-        {!minimalMode && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => setMinimalMode(true)}
-            className="fixed bottom-24 right-4 z-40 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-xl transition-all"
-            title="Minimal Mode (M)"
-          >
-            <FiEyeOff className="w-5 h-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-      {/* Exit Minimal Mode - Small floating button */}
-      {minimalMode && (
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          onClick={() => setMinimalMode(false)}
-          className="fixed top-4 right-4 z-50 p-3 bg-card/90 backdrop-blur-sm rounded-full shadow-lg hover:bg-card transition-all"
-          title="Exit minimal mode"
-          style={{ pointerEvents: "auto" }}
-        >
-          <FiEye className="w-5 h-5" />
-        </motion.button>
-      )}
-
-      {/* Main Content */}
-      <main
-        ref={contentRef}
-        className="h-screen overflow-y-auto scroll-smooth"
-        style={{
-          paddingTop: minimalMode ? "2rem" : "5rem",
-          paddingBottom: minimalMode ? "6rem" : "10rem",
-        }}
+      <footer className="reader-footer">
+        <button className="reader-step" onClick={() => readingMode === "paged" ? turnPage(-1) : previous && navigate(previous.number)}
+          disabled={readingMode === "paged" ? pages.current === 1 && !previous : !previous}
+          aria-label={readingMode === "paged" ? "Previous page" : "Previous chapter"}>
+          <FiChevronLeft aria-hidden="true" /><span>Previous</span>
+        </button>
+        <span className="text-xs text-muted-foreground text-center" aria-live="off">{readingMode === "paged" ? `Page ${pages.current} of ${pages.total}` : `Chapter ${chapter.number} of ${novel.totalChapters}`}</span>
+        <button className="reader-step" onClick={() => readingMode === "paged" ? turnPage(1) : next && navigate(next.number)}
+          disabled={readingMode === "paged" ? pages.current === pages.total && !next : !next}
+          aria-label={readingMode === "paged" ? "Next page" : "Next chapter"}>
+          <span>Next</span><FiChevronRight aria-hidden="true" />
+        </button>
+      </footer>
+      <Modal
+        isOpen={panel === "settings"}
+        onClose={() => setPanel(null)}
+        title="Your reading space"
+        size="sm"
+        placement="right"
       >
-        <article className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          {!minimalMode && (
-            <motion.header
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-10 pb-6 border-b border-border/50"
+        <div className="space-y-6 reader-settings">
+          <p className="text-sm text-muted-foreground">
+            Settle into a page that suits you. Changes save automatically.
+          </p>
+          <fieldset>
+            <legend className="reader-label">Atmosphere</legend>
+            <ThemeChoices value={theme} onChange={setTheme} />
+          </fieldset>
+          <div>
+            <label className="reader-label" htmlFor="reader-font">
+              Typeface
+            </label>
+            <select
+              id="reader-font"
+              value={fontFamily}
+              onChange={(e) =>
+                settings.setFontFamily(e.target.value as typeof fontFamily)
+              }
+              className="reader-select"
             >
-              <div className="flex items-start justify-between gap-4 mb-3">
-                <h1
-                  className="text-2xl sm:text-3xl lg:text-4xl font-bold flex-1"
-                  style={{ fontFamily: getCurrentFont() }}
+              {READER_FONTS.map((f) => (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ReaderSlider
+            label="Text size"
+            value={fontSize}
+            display={`${fontSize}px`}
+            min={14}
+            max={32}
+            step={1}
+            onChange={settings.setFontSize}
+          />
+          <ReaderSlider
+            label="Line spacing"
+            value={lineHeight}
+            display={lineHeight.toFixed(1)}
+            min={1.2}
+            max={2.5}
+            step={0.1}
+            onChange={settings.setLineHeight}
+          />
+          <ReaderSlider
+            label="Page width"
+            value={contentWidth}
+            display={`${contentWidth}px`}
+            min={480}
+            max={960}
+            step={40}
+            onChange={settings.setContentWidth}
+          />
+          <ReaderSlider
+            label="Brightness"
+            value={brightness}
+            display={`${brightness}%`}
+            min={50}
+            max={120}
+            step={5}
+            onChange={settings.setBrightness}
+          />
+          <fieldset disabled={theme === "amoled"}>
+            <legend className="reader-label">Page tint</legend>
+            {theme === "amoled" && (
+              <p className="text-xs text-muted-foreground mb-3">
+                AMOLED keeps the page pure black. Tints apply to other themes.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              {["default", "warm", "sepia", "cool", "green"].map((tint) => (
+                <button
+                  key={tint}
+                  aria-pressed={accentColor === tint}
+                  onClick={() => settings.setAccentColor(tint)}
+                  className={`reader-pill ${accentColor === tint ? "selected" : ""}`}
                 >
-                  {chapter.title}
-                </h1>
-                <span className="px-3 py-1 rounded-lg bg-primary/10 text-primary text-sm font-bold flex-shrink-0">
-                  {chapterId}
-                </span>
-              </div>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <span>
-                  {chapter.content.split(/\s+/).length.toLocaleString()} words
-                </span>
-              </div>
-            </motion.header>
-          )}
-
-          <div
-            className="prose prose-lg max-w-none"
-            style={{
-              fontFamily: getCurrentFont(),
-              fontSize: `${fontSize}px`,
-              lineHeight: `${lineHeight}`,
+                  {tint === "default" ? "Natural" : tint}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend className="reader-label">Reading flow</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {(["continuous", "paged"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  className={`reader-pill ${readingMode === mode ? "selected" : ""}`}
+                  aria-pressed={readingMode === mode}
+                  onClick={() => settings.setReadingMode(mode)}
+                >
+                  {mode === "continuous" ? "Scroll" : "Turn pages"}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+          <button
+            className="reader-action w-full"
+            onClick={() => {
+              setPanel(null);
+              setSelectedText(window.getSelection()?.toString() || "");
+              setBookmark(true);
             }}
           >
-            {formattedContent.map((paragraph, index) => (
-              <p
-                key={index}
-                className="mb-6 whitespace-pre-wrap"
-                style={{ lineHeight: `${lineHeight}` }}
-              >
-                {paragraph}
-              </p>
-            ))}
-          </div>
-
-          {!minimalMode && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              className="mt-12 pt-8 border-t border-border/50 text-center"
-            >
-              <div className="flex items-center justify-center gap-2 text-muted-foreground mb-6">
-                <FiCheckCircle className="w-5 h-5" />
-                <span className="text-sm font-medium">
-                  End of Chapter {chapterId}
-                </span>
-              </div>
-              <div className="flex items-center justify-center gap-3">
-                {chapterId > 1 && (
-                  <button
-                    onClick={() => navigateChapter("prev")}
-                    className="px-4 py-2 rounded-lg bg-secondary hover:bg-secondary/80 transition-colors text-sm font-medium"
-                  >
-                    ← Previous
-                  </button>
-                )}
-                {chapterId < novel.totalChapters && (
-                  <button
-                    onClick={() => navigateChapter("next")}
-                    className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity text-sm font-medium"
-                  >
-                    Next Chapter →
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </article>
-      </main>
-
-      {/* Bottom Navigation */}
-      <AnimatePresence>
-        {!minimalMode && (
-          <motion.div
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            transition={{ duration: 0.2 }}
-            className="fixed left-0 right-0 bottom-0 lg:bottom-0 bg-card/95 backdrop-blur-xl border-t border-border shadow-2xl z-40"
-            style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+            <FiBookmark /> Save a passage
+          </button>
+          <p className="text-xs text-muted-foreground">
+            Arrow keys: move through text · M: focus · S: appearance
+          </p>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={panel === "chapters"}
+        onClose={() => setPanel(null)}
+        title="Contents"
+        size="sm"
+        placement="right"
+      >
+        <p className="text-sm text-muted-foreground mb-4">
+          {novel.title} · {novel.chapters.length} chapters
+        </p>
+        <div className="relative mb-4">
+          <FiSearch className="absolute left-3 top-3.5 text-muted-foreground" />
+          <input
+            className="reader-select pl-10"
+            aria-label="Search chapters"
+            placeholder="Find a chapter or number…"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setChapterWindow(0);
+              const list = document.getElementById("reader-contents-list");
+              if (list) list.scrollTop = 0;
+            }}
+          />
+        </div>
+        <div
+          id="reader-contents-list"
+          className="h-[calc(100dvh-240px)] overflow-auto"
+          onScroll={(event) => setChapterWindow(event.currentTarget.scrollTop)}
+          ref={chaptersViewport}
+        >
+          <div
+            style={{
+              height: filteredChapters.length * 60,
+              position: "relative",
+            }}
           >
-            <div className="px-3 sm:px-4 py-3">
-              <div className="max-w-3xl mx-auto flex items-center gap-2">
-                <button
-                  onClick={() => navigateChapter("prev")}
-                  disabled={chapterId <= 1}
-                  className="px-3 py-2 rounded-lg bg-secondary hover:bg-secondary/80 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 flex-shrink-0"
-                >
-                  <FiChevronLeft className="w-4 h-4" />
-                  <span className="text-sm font-medium hidden sm:inline">
-                    Prev
-                  </span>
-                </button>
-
-                <div className="flex-1 px-2">
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={scrollProgress}
-                    onChange={(e) =>
-                      handleScrubberChange(parseFloat(e.target.value))
-                    }
-                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                    style={{
-                      background: `linear-gradient(to right, hsl(var(--primary)) 0%, hsl(var(--primary)) ${scrollProgress}%, hsl(var(--secondary)) ${scrollProgress}%, hsl(var(--secondary)) 100%)`,
-                    }}
-                  />
-                  <div className="mt-1 text-xs text-muted-foreground text-center truncate">
-                    {chapter.title}
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => navigateChapter("next")}
-                  disabled={chapterId >= novel.totalChapters}
-                  className="px-3 py-2 rounded-lg bg-primary text-primary-foreground hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1 flex-shrink-0"
-                >
-                  <span className="text-sm font-medium hidden sm:inline">
-                    Next
-                  </span>
-                  <FiChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* REVAMPED Settings Panel */}
-      <AnimatePresence>
-        {showSettings && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
-              onClick={() => setShowSettings(false)}
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "tween", duration: 0.25, ease: "easeOut" }}
-              className="fixed right-0 top-0 h-full w-full max-w-md z-[55] bg-card shadow-2xl overflow-y-auto"
+            <div
+              style={{
+                position: "absolute",
+                insetInline: 0,
+                top: windowStart * 60,
+              }}
             >
-              <div className="min-h-full pb-safe">
-                {/* Header */}
-                <div className="sticky top-0 bg-card/95 backdrop-blur-xl border-b border-border z-10 px-6 py-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold">Reading Settings</h2>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Customize your experience
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setShowSettings(false)}
-                      className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                    >
-                      <FiX className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="p-6 space-y-8 pb-24">
-                  {/* Page Background */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <FiDroplet className="w-5 h-5 text-primary" />
-                      <h3 className="text-sm font-bold">Page Background</h3>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      {getCurrentThemeAccents().map((color) => (
-                        <motion.button
-                          key={color.value}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => setAccentColor(color.value)}
-                          className={`relative p-3 rounded-xl border-2 transition-all ${
-                            accentColor === color.value
-                              ? "border-primary ring-4 ring-primary/20 shadow-lg"
-                              : "border-border hover:border-primary/50"
-                          }`}
-                        >
-                          <div
-                            className={`w-full h-12 rounded-lg mb-2 border border-border/50 shadow-sm`}
-                            style={{ backgroundColor: color.preview }}
-                          />
-                          <div className="text-xs font-medium text-center">
-                            {color.name}
-                          </div>
-                          {accentColor === color.value && (
-                            <div className="absolute top-2 right-2 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                              <FiCheckCircle className="w-3 h-3 text-primary-foreground" />
-                            </div>
-                          )}
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Font Family */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-4">
-                      <FiType className="w-5 h-5 text-blue-500" />
-                      <h3 className="text-sm font-bold">Font Family</h3>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      {FONTS.map((font) => (
-                        <motion.button
-                          key={font.value}
-                          whileHover={{ scale: 1.03 }}
-                          whileTap={{ scale: 0.97 }}
-                          onClick={() => setFontFamily(font.value as ReaderFont)}
-                          className={`p-4 rounded-xl border-2 transition-all ${
-                            fontFamily === font.value
-                              ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                              : "border-border hover:border-primary/50"
-                          }`}
-                          style={{ fontFamily: font.family }}
-                        >
-                          <div className="text-2xl font-medium mb-1">Aa</div>
-                          <div className="text-sm">{font.label}</div>
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Font Size */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <FiType className="w-5 h-5 text-green-500" />
-                        <h3 className="text-sm font-bold">Font Size</h3>
-                      </div>
-                      <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                        {fontSize}px
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={14}
-                      max={28}
-                      value={fontSize}
-                      onChange={(e) => setFontSize(parseInt(e.target.value))}
-                      className="w-full h-3 accent-primary"
-                    />
-                    <div className="flex justify-between mt-2 text-xs text-muted-foreground font-medium">
-                      <span>Small (14px)</span>
-                      <span>Large (28px)</span>
-                    </div>
-                    {/* Preview */}
-                    <div className="mt-4 p-4 rounded-lg bg-secondary/50 border border-border">
-                      <p
-                        className="text-center"
-                        style={{
-                          fontFamily: getCurrentFont(),
-                          fontSize: `${fontSize}px`,
-                        }}
-                      >
-                        The quick brown fox jumps over the lazy dog
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Line Spacing */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <FiAlignLeft className="w-5 h-5 text-purple-500" />
-                        <h3 className="text-sm font-bold">Line Spacing</h3>
-                      </div>
-                      <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                        {lineHeight}
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={1.4}
-                      max={2.4}
-                      step={0.1}
-                      value={lineHeight}
-                      onChange={(e) =>
-                        setLineHeight(parseFloat(e.target.value))
-                      }
-                      className="w-full h-3 accent-primary"
-                    />
-                    <div className="flex justify-between mt-2 text-xs text-muted-foreground font-medium">
-                      <span>Compact (1.4)</span>
-                      <span>Relaxed (2.4)</span>
-                    </div>
-                  </div>
-
-                  {/* Brightness */}
-                  <div>
-                    <div className="flex justify-between items-center mb-3">
-                      <div className="flex items-center gap-2">
-                        <FiSun className="w-5 h-5 text-orange-500" />
-                        <h3 className="text-sm font-bold">Brightness</h3>
-                      </div>
-                      <span className="text-sm font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">
-                        {brightness}%
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={50}
-                      max={120}
-                      value={brightness}
-                      onChange={(e) => setBrightness(parseInt(e.target.value))}
-                      className="w-full h-3 accent-primary"
-                    />
-                    <div className="flex justify-between mt-2 text-xs text-muted-foreground font-medium">
-                      <span>Dim (50%)</span>
-                      <span>Bright (120%)</span>
-                    </div>
-                  </div>
-
-                  {/* Keyboard Shortcuts */}
-                  <div className="pt-6 border-t border-border">
-                    <h3 className="text-sm font-bold mb-4 flex items-center gap-2">
-                      <FiSettings className="w-4 h-4" />
-                      Keyboard Shortcuts
-                    </h3>
-                    <div className="space-y-3">
-                      {[
-                        { label: "Navigate chapters", keys: ["←", "→"] },
-                        { label: "Minimal mode", keys: ["M"] },
-                        { label: "Settings", keys: ["S"] },
-                        { label: "Close panels", keys: ["ESC"] },
-                      ].map((shortcut) => (
-                        <div
-                          key={shortcut.label}
-                          className="flex justify-between items-center p-3 rounded-lg bg-secondary/50"
-                        >
-                          <span className="text-sm text-muted-foreground">
-                            {shortcut.label}
-                          </span>
-                          <div className="flex gap-1">
-                            {shortcut.keys.map((key) => (
-                              <kbd
-                                key={key}
-                                className="px-2.5 py-1.5 bg-background border-2 border-border rounded-md text-xs font-bold shadow-sm"
-                              >
-                                {key}
-                              </kbd>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Reading Tips */}
-                  <div className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-purple-500/10 border-2 border-primary/20">
-                    <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
-                      <FiEye className="w-4 h-4 text-primary" />
-                      Reading Tips
-                    </h4>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li className="flex items-start gap-2">
-                        <span className="text-primary mt-0.5">•</span>
-                        <span>
-                          Swipe left/right to navigate chapters on mobile
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-primary mt-0.5">•</span>
-                        <span>
-                          Header auto-hides when scrolling down for better focus
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-primary mt-0.5">•</span>
-                        <span>
-                          Use minimal mode for distraction-free reading
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Chapter List with Search - VIRTUALIZED */}
-      <AnimatePresence>
-        {showChapterList && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55]"
-              onClick={() => setShowChapterList(false)}
-            />
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
-              className="fixed left-0 top-0 h-full w-full max-w-md z-[55] bg-card shadow-2xl overflow-hidden flex flex-col"
-            >
-              <div className="p-6 border-b border-border flex-shrink-0">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-bold">Chapters</h2>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {novel.totalChapters} total chapters
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowChapterList(false)}
-                    className="p-2 rounded-lg hover:bg-secondary transition-colors"
-                  >
-                    <FiX className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="relative">
-                  <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Search chapters..."
-                    value={chapterSearch}
-                    onChange={(e) => setChapterSearch(e.target.value)}
-                    className="w-full pl-10 pr-10 py-2.5 bg-secondary border-2 border-border rounded-lg focus:border-primary focus:outline-none transition-colors"
-                  />
-                  {chapterSearch && (
-                    <button
-                      onClick={() => setChapterSearch("")}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-card rounded transition-colors"
-                    >
-                      <FiX className="w-4 h-4" />
-                    </button>
+              {visibleChapters.map((item) => (
+                <button
+                  key={item.number}
+                  className={`reader-chapter-link ${item.number === chapter.number ? "selected" : ""}`}
+                  aria-current={
+                    item.number === chapter.number ? "page" : undefined
+                  }
+                  onClick={() => {
+                    setPanel(null);
+                    navigate(item.number);
+                  }}
+                >
+                  <span className="text-xs tabular-nums text-muted-foreground w-8 shrink-0">
+                    {String(item.number).padStart(2, "0")}
+                  </span>
+                  <span className="truncate flex-1 text-left">
+                    {item.title}
+                  </span>
+                  {item.number === chapter.number && (
+                    <FiBookmark className="shrink-0 text-primary" />
                   )}
-                </div>
-
-                {chapterSearch && (
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    Showing {filteredChapters.length} of {novel.totalChapters}{" "}
-                    chapters
-                  </p>
-                )}
-              </div>
-
-              <VirtualChapterList
-                chapters={filteredChapters}
-                currentChapter={chapterId}
-                onChapterClick={(chNum) => {
-                  router.push(`/reader/${novelId}/${chNum}`);
-                  setShowChapterList(false);
-                }}
-              />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
+                </button>
+              ))}
+            </div>
+          </div>
+          {!filteredChapters.length && (
+            <p className="py-12 text-center text-muted-foreground">
+              No chapters match your search.
+            </p>
+          )}
+        </div>
+      </Modal>
       <BookmarkModal
-        isOpen={showBookmarkModal}
-        onClose={() => {
-          setShowBookmarkModal(false);
-          setSelectedTextForBookmark("");
-        }}
+        isOpen={bookmark}
+        onClose={() => setBookmark(false)}
         novelId={novelId}
-        chapterNumber={chapterId}
+        chapterNumber={chapter.number}
         chapterTitle={chapter.title}
-        selectedText={selectedTextForBookmark}
-        position={contentRef.current?.scrollTop || 0}
+        selectedText={selectedText}
+        position={viewport.current?.scrollTop || 0}
+      />
+    </div>
+  );
+}
+
+function ReaderSlider({
+  label,
+  value,
+  display,
+  min,
+  max,
+  step,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  display: string;
+  min: number;
+  max: number;
+  step: number;
+  onChange: (value: number) => void;
+}) {
+  const id = `reader-${label.replaceAll(" ", "-").toLowerCase()}`;
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <label htmlFor={id} className="reader-label mb-0">
+          {label}
+        </label>
+        <output
+          htmlFor={id}
+          className="text-xs text-muted-foreground tabular-nums"
+        >
+          {display}
+        </output>
+      </div>
+      <input
+        id={id}
+        className="w-full accent-primary"
+        type="range"
+        value={value}
+        min={min}
+        max={max}
+        step={step}
+        onChange={(e) => onChange(Number(e.target.value))}
       />
     </div>
   );

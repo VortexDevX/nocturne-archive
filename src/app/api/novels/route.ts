@@ -6,9 +6,13 @@ import {
   getNovelFolders,
   readNovelMetadata,
   readChaptersMetadata,
-  generateSlug,
 } from "@/lib/utils/fileSystem";
 import type { ApiResponse } from "@/types";
+import {
+  createUploadedNovel,
+  requireNovelUploader,
+  uploadFailure,
+} from "@/lib/novels/upload";
 
 /**
  * GET /api/novels
@@ -20,7 +24,7 @@ export async function GET() {
     if (!session) {
       return NextResponse.json(
         { success: false, message: "Not authenticated" } as ApiResponse,
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -40,7 +44,9 @@ export async function GET() {
       if (metadata) {
         // Check if novel exists in database
         const existsInDb = dbNovels.find(
-          (novel) => novel.folderPath === `data/novels/${folder}`
+          (novel) =>
+            novel.slug === folder ||
+            novel.folderPath.replace(/\\/g, "/").split("/").pop() === folder,
         );
 
         if (!existsInDb) {
@@ -68,7 +74,7 @@ export async function GET() {
         success: true,
         data: allNovels,
       } as ApiResponse,
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error: unknown) {
     console.error("Get novels error:", error);
@@ -78,7 +84,7 @@ export async function GET() {
         message: "Failed to get novels",
         error: error instanceof Error ? error.message : "Failed to get novels",
       } as ApiResponse,
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -89,63 +95,17 @@ export async function GET() {
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Not authenticated" } as ApiResponse,
-        { status: 401 }
-      );
-    }
-
-    const body = await request.json();
-    const { title, author, description, genres, status } = body;
-
-    // Validate required fields
-    if (!title || !author) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Title and author are required",
-        } as ApiResponse,
-        { status: 400 }
-      );
-    }
-
-    await connectDB();
-
-    const slug = generateSlug(title);
-    const folderPath = `data/novels/${slug}`;
-
-    // Create novel in database
-    const novel = await NovelModel.create({
-      title,
-      author,
-      description: description || "",
-      genres: genres || [],
-      status: status || "ongoing",
-      folderPath,
-      addedBy: session.userId,
-      isPublic: false,
-      totalChapters: 0,
-    });
-
-    return NextResponse.json(
-      {
-        success: true,
-        data: novel,
-        message: "Novel created successfully",
-      } as ApiResponse,
-      { status: 201 }
+    const access = await requireNovelUploader();
+    if (access.response) return access.response;
+    const { novel } = await createUploadedNovel(
+      await request.json(),
+      access.session.userId,
     );
-  } catch (error: unknown) {
-    console.error("Create novel error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to create novel",
-        error: error instanceof Error ? error.message : "Failed to create novel",
-      } as ApiResponse,
-      { status: 500 }
+      { success: true, data: novel, message: "Novel created successfully" },
+      { status: 201 },
     );
+  } catch (error) {
+    return uploadFailure(error);
   }
 }

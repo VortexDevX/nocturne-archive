@@ -20,7 +20,7 @@ import {
   FiPlus,
   FiBook,
 } from "react-icons/fi";
-import { useHamburger } from "../layout";
+import { useHamburger } from "@/components/layout/NavigationContext";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
 import Button from "@/components/ui/Button";
 import { useRouter } from "next/navigation";
@@ -41,49 +41,49 @@ const genres = [
     id: "all",
     label: "All",
     icon: FiGrid,
-    color: "from-slate-500 to-slate-600",
+    color: "bg-primary",
   },
   {
     id: "fantasy",
     label: "Fantasy",
     icon: FiCommand,
-    color: "from-violet-500 to-violet-600",
+    color: "bg-primary",
   },
   {
     id: "action",
     label: "Action",
     icon: FiZap,
-    color: "from-orange-500 to-orange-600",
+    color: "bg-primary",
   },
   {
     id: "romance",
     label: "Romance",
     icon: FiHeart,
-    color: "from-rose-500 to-rose-600",
+    color: "bg-primary",
   },
   {
     id: "scifi",
     label: "Sci-Fi",
     icon: FiTarget,
-    color: "from-blue-500 to-blue-600",
+    color: "bg-primary",
   },
   {
     id: "mystery",
     label: "Mystery",
     icon: FiHelpCircle,
-    color: "from-indigo-500 to-indigo-600",
+    color: "bg-primary",
   },
   {
     id: "horror",
     label: "Horror",
     icon: FiMoon,
-    color: "from-gray-600 to-gray-700",
+    color: "bg-primary",
   },
   {
     id: "comedy",
     label: "Comedy",
     icon: FiSmile,
-    color: "from-amber-500 to-amber-600",
+    color: "bg-primary",
   },
 ];
 
@@ -293,7 +293,7 @@ export default function ExplorePage() {
               }`}
             >
               <div
-                className={`flex items-center gap-2 text-white bg-gradient-to-r ${
+                className={`flex items-center gap-2 text-primary-foreground ${
                   genre.color
                 } px-3 py-1.5 rounded-lg ${
                   selectedGenre === genre.id
@@ -383,34 +383,7 @@ function NovelCard({
 }) {
   const router = useRouter();
 
-  const colorThemes = [
-    {
-      bg: "from-violet-500/20 to-purple-500/20",
-      solid: "from-violet-500 to-purple-500",
-    },
-    {
-      bg: "from-blue-500/20 to-cyan-500/20",
-      solid: "from-blue-500 to-cyan-500",
-    },
-    {
-      bg: "from-orange-500/20 to-red-500/20",
-      solid: "from-orange-500 to-red-500",
-    },
-    {
-      bg: "from-green-500/20 to-emerald-500/20",
-      solid: "from-green-500 to-emerald-500",
-    },
-    {
-      bg: "from-pink-500/20 to-rose-500/20",
-      solid: "from-pink-500 to-rose-500",
-    },
-    {
-      bg: "from-indigo-500/20 to-blue-500/20",
-      solid: "from-indigo-500 to-blue-500",
-    },
-  ];
-
-  const theme = colorThemes[index % colorThemes.length];
+  const theme = { bg: "bg-primary/10", solid: "bg-primary" };
 
   return (
     <motion.div
@@ -425,7 +398,7 @@ function NovelCard({
         <div
           onClick={() => router.push(`/novel/${novel.slug}`)}
           className={`relative aspect-[2/3] rounded-xl overflow-hidden shadow-md hover:shadow-lg transition-all border border-border hover:border-primary/30 ${
-            !novel.coverImage ? `bg-gradient-to-br ${theme.bg}` : ""
+            !novel.coverImage ? `${theme.bg}` : ""
           }`}
         >
           {novel.coverImage ? (
@@ -451,10 +424,10 @@ function NovelCard({
             <span
               className={`px-2 py-1 rounded-md text-xs font-bold shadow-md ${
                 novel.status === "ongoing"
-                  ? "bg-blue-500/90 text-white"
+                  ? "bg-primary text-primary-foreground"
                   : novel.status === "completed"
-                    ? "bg-green-500/90 text-white"
-                    : "bg-orange-500/90 text-white"
+                    ? "bg-card text-success"
+                    : "bg-card text-warning"
               }`}
             >
               {novel.status}
@@ -489,13 +462,13 @@ function NovelCard({
         <button
           onClick={(e) => handleAddToLibrary(novel.slug, e)}
           disabled={addingNovel === novel.slug}
-          className="absolute top-2 right-2 p-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/20 hover:bg-primary hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
+          className="absolute top-2 right-2 p-2 rounded-lg bg-black/60 text-white hover:text-primary-foreground backdrop-blur-sm border border-white/20 hover:bg-primary hover:border-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed z-10"
           title="Add to Plan to Read"
         >
           {addingNovel === novel.slug ? (
             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
-            <FiPlus className="h-4 w-4 text-white" />
+            <FiPlus className="h-4 w-4" />
           )}
         </button>
 

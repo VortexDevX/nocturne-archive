@@ -20,14 +20,14 @@ const UserPreferencesSchema = new Schema<UserPreferences>(
     },
     fontSize: {
       type: Number,
-      default: 18,
+      default: 20,
       min: 12,
       max: 32,
     },
     fontFamily: {
       type: String,
-      enum: ["inter", "roboto", "fira-code", "system", "josephin"],
-      default: "system",
+      enum: ["serif", "inter", "roboto", "fira-code", "system", "josephin"],
+      default: "serif",
     },
     lineHeight: {
       type: Number,

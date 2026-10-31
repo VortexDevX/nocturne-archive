@@ -45,7 +45,7 @@ export default function LoginPage() {
 
       if (result.success) {
         setUser(result.user);
-        toast.success("Welcome back! 🎉");
+        toast.success("Welcome back!");
 
         await new Promise((resolve) => setTimeout(resolve, 300));
 
@@ -69,7 +69,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -84,14 +84,14 @@ export default function LoginPage() {
             className="mb-4 inline-flex items-center justify-center"
           >
             <Image
-              src="/logo.png"
+              src="/brand/nocturne-mark.png"
               alt="Nocturne"
               width={64}
               height={64}
               priority
             />
           </motion.div>
-          <h1 className="mb-2 text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <h1 className="mb-2 text-4xl font-bold text-foreground font-serif font-normal tracking-tight">
             Welcome Back
           </h1>
           <p className="text-muted-foreground">
@@ -179,7 +179,7 @@ export default function LoginPage() {
         </motion.div>
 
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          By continuing, you agree to our Terms of Service and Privacy Policy
+          Your next chapter starts here.
         </p>
       </motion.div>
     </div>

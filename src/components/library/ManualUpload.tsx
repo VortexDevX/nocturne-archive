@@ -349,7 +349,7 @@ export default function ManualUpload() {
                         setCoverPreview(null);
                         setCoverFile(null);
                       }}
-                      className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                      className="absolute top-2 right-2 p-1.5 bg-danger text-danger-foreground rounded-lg hover:bg-danger transition-colors"
                     >
                       <FiTrash2 className="w-4 h-4" />
                     </button>
@@ -432,7 +432,7 @@ export default function ManualUpload() {
           {/* Chapter Files Upload */}
           <div className="bg-card rounded-xl border border-border p-6">
             <h3 className="text-lg font-bold mb-4">
-              📄 Upload Chapter Files (Required)
+              <FiFileText className="inline h-4 w-4 mr-2" aria-hidden="true" />Upload Chapter Files (Required)
             </h3>
 
             <input
@@ -473,7 +473,7 @@ export default function ManualUpload() {
                       </div>
                       <button
                         onClick={() => removeChapter(index)}
-                        className="p-1.5 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors flex-shrink-0"
+                        className="p-1.5 hover:bg-danger/10 text-danger rounded-lg transition-colors flex-shrink-0"
                       >
                         <FiTrash2 className="w-4 h-4" />
                       </button>
@@ -487,7 +487,7 @@ export default function ManualUpload() {
           {/* Titles File Upload (Optional) */}
           <div className="bg-card rounded-xl border border-border p-6">
             <h3 className="text-lg font-bold mb-4">
-              📋 Upload titles.txt (Optional)
+              <FiFileText className="inline h-4 w-4 mr-2" aria-hidden="true" />Upload titles.txt (Optional)
             </h3>
 
             <input
@@ -509,7 +509,7 @@ export default function ManualUpload() {
                 </div>
                 <button
                   onClick={removeTitlesFile}
-                  className="p-2 hover:bg-red-500/10 text-red-500 rounded-lg transition-colors"
+                  className="p-2 hover:bg-danger/10 text-danger rounded-lg transition-colors"
                 >
                   <FiTrash2 className="w-5 h-5" />
                 </button>
@@ -581,8 +581,8 @@ export default function ManualUpload() {
                   key={chapter.number}
                   className={`p-3 rounded-lg border ${
                     chapter.matched
-                      ? "border-green-500/30 bg-green-500/5"
-                      : "border-yellow-500/30 bg-yellow-500/5"
+                      ? "border-success/30 bg-success/5"
+                      : "border-warning/30 bg-warning/5"
                   }`}
                 >
                   <div className="flex items-center gap-3">

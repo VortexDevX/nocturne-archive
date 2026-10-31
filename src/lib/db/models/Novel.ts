@@ -3,6 +3,7 @@ import { Novel } from "@/types";
 
 const NovelSchema = new Schema<Novel>(
   {
+    slug: { type: String, index: true, unique: true, sparse: true },
     title: {
       type: String,
       required: [true, "Title is required"],
@@ -53,7 +54,7 @@ const NovelSchema = new Schema<Novel>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 const NovelModel: Model<Novel> =

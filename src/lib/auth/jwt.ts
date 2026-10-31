@@ -2,12 +2,13 @@ import { SignJWT } from "jose/jwt/sign";
 import { jwtVerify } from "jose/jwt/verify";
 import { User } from "@/types";
 
-const rawSecret = process.env.JWT_SECRET;
-if (!rawSecret) {
-  throw new Error("FATAL: JWT_SECRET environment variable is not defined");
+function getJwtSecret(): Uint8Array {
+  const rawSecret = process.env.JWT_SECRET;
+  if (!rawSecret) {
+    throw new Error("FATAL: JWT_SECRET environment variable is not defined");
+  }
+  return new TextEncoder().encode(rawSecret);
 }
-
-const JWT_SECRET = new TextEncoder().encode(rawSecret);
 
 export interface CustomJWTPayload {
   userId: string;
@@ -23,14 +24,14 @@ export async function signToken(payload: CustomJWTPayload): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
 }
 
 export async function verifyToken(
   token: string
 ): Promise<CustomJWTPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
 
     if (
       payload &&

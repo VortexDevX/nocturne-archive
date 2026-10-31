@@ -20,14 +20,14 @@ export default function AdminUploadPage() {
       title: "Manual Upload",
       description: "Add novel details and upload chapters individually",
       icon: FiUpload,
-      color: "from-blue-500 to-cyan-500",
+      color: "bg-primary",
     },
     {
       id: "bulk" as UploadMethod,
       title: "Bulk TXT Upload",
       description: "Upload multiple chapter files at once",
       icon: FiFileText,
-      color: "from-orange-500 to-red-500",
+      color: "bg-primary",
     },
   ];
 
@@ -118,10 +118,10 @@ function MethodCard({ method, index, onClick }: MethodCardProps) {
       className="relative overflow-hidden rounded-2xl border border-border bg-card hover:border-primary/50 transition-all p-6 text-left group hover:shadow-xl hover:shadow-primary/10"
     >
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${method.color} opacity-5 group-hover:opacity-10 transition-opacity`}
+        className={`absolute inset-0 ${method.color} opacity-5 group-hover:opacity-10 transition-opacity`}
       />
       <div
-        className={`w-14 h-14 rounded-xl bg-gradient-to-br ${method.color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform relative`}
+        className={`w-14 h-14 rounded-xl ${method.color} flex items-center justify-center text-primary-foreground mb-4 group-hover:scale-110 transition-transform relative`}
       >
         <Icon className="w-7 h-7" />
       </div>

@@ -15,7 +15,7 @@ import {
   FiBook,
 } from "react-icons/fi";
 import Button from "@/components/ui/Button";
-import { useHamburger } from "../layout";
+import { useHamburger } from "@/components/layout/NavigationContext";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
 import { ContinueReadingItem } from "@/types";
 import { useRouter } from "next/navigation";
@@ -93,7 +93,7 @@ export default function ContinuePage() {
             animate={{ scale: 1, opacity: 1 }}
             className="mb-6"
           >
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-purple-500/20 flex items-center justify-center mb-4 mx-auto">
+            <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center mb-4 mx-auto">
               <FiBook className="w-12 h-12 text-primary" />
             </div>
           </motion.div>
@@ -135,7 +135,7 @@ export default function ContinuePage() {
               icon={<FiBookOpen />}
               label="Reading"
               value={data.length}
-              color="from-blue-500 to-cyan-500"
+              color="bg-primary"
             />
             <StatCard
               icon={<FiTrendingUp />}
@@ -151,13 +151,13 @@ export default function ContinuePage() {
                   : 0
               }
               suffix="%"
-              color="from-green-500 to-emerald-500"
+              color="bg-primary"
             />
             <StatCard
               icon={<FiCheckCircle />}
               label="Chapters"
               value={data.reduce((sum, item) => sum + item.chaptersRead, 0)}
-              color="from-purple-500 to-pink-500"
+              color="bg-primary"
             />
           </motion.div>
 
@@ -166,7 +166,7 @@ export default function ContinuePage() {
             <Section
               title="Today"
               icon={<FiCalendar />}
-              color="text-green-500"
+              color="text-success"
               items={groupedData.today}
             />
           )}
@@ -176,7 +176,7 @@ export default function ContinuePage() {
             <Section
               title="Yesterday"
               icon={<FiClock />}
-              color="text-blue-500"
+              color="text-primary"
               items={groupedData.yesterday}
             />
           )}
@@ -186,7 +186,7 @@ export default function ContinuePage() {
             <Section
               title="Earlier"
               icon={<FiClock />}
-              color="text-purple-500"
+              color="text-primary"
               items={groupedData.older}
             />
           )}
@@ -230,12 +230,12 @@ function MobileHeader({
 // Desktop Header Component
 function DesktopHeader({ count }: { count: string }) {
   return (
-    <header className="hidden lg:block border-b border-border bg-gradient-to-br from-primary/5 via-background to-background">
+    <header className="hidden lg:block border-b border-border bg-card">
       <div className="max-w-6xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-500 flex items-center justify-center text-white shadow-lg">
+              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground shadow-lg">
                 <FiClock className="w-6 h-6" />
               </div>
               Continue Reading
@@ -272,11 +272,11 @@ function StatCard({
       className="relative overflow-hidden rounded-2xl border-2 border-border bg-card p-4 lg:p-5"
     >
       <div
-        className={`absolute inset-0 bg-gradient-to-br ${color} opacity-5`}
+        className={`absolute inset-0 ${color} opacity-5`}
       />
       <div className="relative">
         <div
-          className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-3 shadow-lg`}
+          className={`w-10 h-10 lg:w-12 lg:h-12 rounded-xl ${color} flex items-center justify-center text-primary-foreground mb-3 shadow-lg`}
         >
           {icon}
         </div>
@@ -313,7 +313,7 @@ function Section({
       <div className="flex items-center gap-3 sticky top-0 lg:top-0 bg-background py-2 z-10">
         <div className={`${color}`}>{icon}</div>
         <h2 className="text-xl font-bold">{title}</h2>
-        <div className="flex-1 h-px bg-gradient-to-r from-border to-transparent" />
+        <div className="flex-1 h-px bg-border" />
         <span className="text-sm text-muted-foreground font-medium">
           {items.length} {items.length === 1 ? "novel" : "novels"}
         </span>
@@ -338,35 +338,7 @@ function NovelCard({
 }) {
   const router = useRouter();
 
-  const colorSchemes = [
-    {
-      gradient: "from-violet-500 to-purple-500",
-      light: "from-violet-500/10 to-purple-500/10",
-      ring: "ring-violet-500/20",
-    },
-    {
-      gradient: "from-blue-500 to-cyan-500",
-      light: "from-blue-500/10 to-cyan-500/10",
-      ring: "ring-blue-500/20",
-    },
-    {
-      gradient: "from-green-500 to-emerald-500",
-      light: "from-green-500/10 to-emerald-500/10",
-      ring: "ring-green-500/20",
-    },
-    {
-      gradient: "from-orange-500 to-red-500",
-      light: "from-orange-500/10 to-red-500/10",
-      ring: "ring-orange-500/20",
-    },
-    {
-      gradient: "from-pink-500 to-rose-500",
-      light: "from-pink-500/10 to-rose-500/10",
-      ring: "ring-pink-500/20",
-    },
-  ];
-
-  const scheme = colorSchemes[index % colorSchemes.length];
+  const scheme = { surface: "bg-primary", light: "bg-primary/10", ring: "ring-primary/20" };
 
   const handleContinue = () => {
     router.push(`/reader/${item.novelId}/${item.currentChapter}`);
@@ -386,7 +358,7 @@ function NovelCard({
       <div className="relative overflow-hidden rounded-2xl border-2 border-border bg-card hover:border-primary/50 hover:shadow-xl hover:shadow-primary/5 transition-all">
         {/* Background Gradient */}
         <div
-          className={`absolute inset-0 bg-gradient-to-br ${scheme.light} opacity-0 group-hover:opacity-100 transition-opacity`}
+          className={`absolute inset-0 ${scheme.light} opacity-0 group-hover:opacity-100 transition-opacity`}
         />
 
         <div className="relative p-4 lg:p-5">
@@ -396,7 +368,7 @@ function NovelCard({
               className={`relative flex-shrink-0 w-24 h-36 lg:w-28 lg:h-40 rounded-xl overflow-hidden shadow-lg ring-2 ${
                 scheme.ring
               } ${
-                !item.coverImage ? `bg-gradient-to-br ${scheme.gradient}` : ""
+                !item.coverImage ? `${scheme.surface}` : ""
               }`}
             >
               {item.coverImage ? (
@@ -409,7 +381,7 @@ function NovelCard({
                   sizes="(max-width: 1024px) 96px, 112px"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-white">
+                <div className="w-full h-full flex items-center justify-center text-primary-foreground">
                   <FiBookOpen className="w-10 h-10" />
                 </div>
               )}
@@ -438,7 +410,7 @@ function NovelCard({
                       className="transition-all duration-500"
                     />
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center text-white text-[10px] font-bold">
+                  <div className="absolute inset-0 flex items-center justify-center text-primary-foreground text-[10px] font-bold">
                     {item.progressPercent}%
                   </div>
                 </div>
@@ -493,7 +465,7 @@ function NovelCard({
                       initial={{ width: 0 }}
                       animate={{ width: `${item.progressPercent}%` }}
                       transition={{ delay: index * 0.05, duration: 0.8 }}
-                      className={`h-full bg-gradient-to-r ${scheme.gradient} rounded-full shadow-sm`}
+                      className={`h-full ${scheme.surface} rounded-full shadow-sm`}
                     />
                   </div>
                 </div>

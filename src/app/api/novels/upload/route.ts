@@ -1,150 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth/session";
-import connectDB from "@/lib/db/mongodb";
-import NovelModel from "@/lib/db/models/Novel";
-import UserModel from "@/lib/db/models/User"; // NEW
 import {
-  createNovelFolder,
-  generateSlug,
-  novelExists,
-  writeNovelMetadata,
-  writeChaptersMetadata,
-} from "@/lib/utils/fileSystem";
-import { writeFile } from "fs/promises";
-import path from "path";
-import type { ApiResponse, ChapterMetadata } from "@/types";
+  createUploadedNovel,
+  NovelUploadError,
+  requireNovelUploader,
+  uploadFailure,
+} from "@/lib/novels/upload";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { success: false, message: "Not authenticated" } as ApiResponse,
-        { status: 401 }
-      );
+    const access = await requireNovelUploader();
+    if (access.response) return access.response;
+    const form = await request.formData();
+    let genres: unknown;
+    try {
+      genres = JSON.parse(String(form.get("genres") || "[]"));
+    } catch {
+      throw new NovelUploadError("Invalid genres");
     }
-
-    await connectDB(); // ensure DB ready for permission check
-
-    const user = await UserModel.findById(session.userId).select(
-      "isAdmin canUpload"
+    const cover = form.get("cover");
+    if (cover !== null && !(cover instanceof File))
+      throw new NovelUploadError("Invalid cover image");
+    const data = await createUploadedNovel(
+      {
+        title: form.get("title"),
+        author: form.get("author"),
+        description: form.get("description") || "",
+        genres,
+        status: form.get("status") || "ongoing",
+      },
+      access.session.userId,
+      cover || undefined,
     );
-    if (!user || (!user.isAdmin && !user.canUpload)) {
-      return NextResponse.json(
-        { success: false, message: "Insufficient permissions" } as ApiResponse,
-        { status: 403 }
-      );
-    }
-
-    const formData = await request.formData();
-
-    const title = formData.get("title") as string;
-    const author = formData.get("author") as string;
-    const description = formData.get("description") as string;
-    const genres = JSON.parse((formData.get("genres") as string) || "[]");
-    const status =
-      (formData.get("status") as "ongoing" | "completed" | "hiatus") ||
-      "ongoing";
-
-    if (!title || !author) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Title and author are required",
-        } as ApiResponse,
-        { status: 400 }
-      );
-    }
-
-    const slug = generateSlug(title);
-    if (await novelExists(slug)) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "A novel with this title already exists",
-        } as ApiResponse,
-        { status: 400 }
-      );
-    }
-
-    await createNovelFolder(slug);
-
-    let coverFilename = "cover.jpg";
-    const coverFile = formData.get("cover") as File | null;
-    if (coverFile) {
-      const ext = path.extname(coverFile.name).toLowerCase();
-      const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
-      if (!allowedExtensions.includes(ext)) {
-        return NextResponse.json(
-          {
-            success: false,
-            message: "Invalid cover image type. Allowed: jpg, jpeg, png, webp",
-          } as ApiResponse,
-          { status: 400 }
-        );
-      }
-      coverFilename = `cover${ext}`;
-      const coverBuffer = Buffer.from(await coverFile.arrayBuffer());
-      const coverPath = path.join(
-        process.cwd(),
-        "data",
-        "novels",
-        slug,
-        coverFilename
-      );
-      await writeFile(coverPath, coverBuffer);
-    }
-
-    const chaptersMetadata: ChapterMetadata[] = [];
-
-    const metadata = {
-      title,
-      author,
-      description,
-      genres,
-      status,
-      coverImage: coverFilename,
-      totalChapters: 0,
-      addedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      slug,
-    };
-    await writeNovelMetadata(slug, metadata);
-    await writeChaptersMetadata(slug, chaptersMetadata);
-
-    const novel = await NovelModel.create({
-      title,
-      author,
-      description,
-      genres,
-      status,
-      coverImage: `/api/novels/cover/${slug}/${coverFilename}`,
-      customCover: coverFile
-        ? `/api/novels/cover/${slug}/${coverFilename}`
-        : undefined,
-      folderPath: `data/novels/${slug}`,
-      addedBy: session.userId,
-      isPublic: false,
-      totalChapters: 0,
-    });
-
     return NextResponse.json(
       {
         success: true,
-        data: { novel, slug },
+        data,
         message: "Novel created successfully. Now upload chapters.",
-      } as ApiResponse,
-      { status: 201 }
+      },
+      { status: 201 },
     );
-  } catch (error: unknown) {
-    console.error("Novel upload error:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Failed to upload novel",
-        error: error instanceof Error ? error.message : "Internal Server Error",
-      } as ApiResponse,
-      { status: 500 }
-    );
+  } catch (error) {
+    return uploadFailure(error);
   }
 }

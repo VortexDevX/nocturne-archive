@@ -4,18 +4,18 @@
   "description": "Your premium light novel reading experience",
   "start_url": "/library",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#8b5cf6",
+  "background_color": "#141414",
+  "theme_color": "#141414",
   "orientation": "any",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/brand/nocturne-icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/brand/nocturne-icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
@@ -28,14 +28,14 @@
       "short_name": "Library",
       "description": "View your library",
       "url": "/library",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/brand/nocturne-icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Continue Reading",
       "short_name": "Continue",
       "description": "Continue reading",
       "url": "/continue",
-      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/brand/nocturne-icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

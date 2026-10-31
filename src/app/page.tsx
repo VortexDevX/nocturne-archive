@@ -29,7 +29,7 @@ export default function Home() {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-primary/5">
+    <div className="flex min-h-screen items-center justify-center bg-background ">
       <motion.div
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -50,7 +50,7 @@ export default function Home() {
         >
           <FiBook className="w-20 h-20 text-primary" />
         </motion.div>
-        <h1 className="mb-4 text-4xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+        <h1 className="mb-4 text-4xl font-bold text-foreground font-serif font-normal tracking-tight">
           Nocturne
         </h1>
         <p className="text-muted-foreground animate-pulse">

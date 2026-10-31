@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFile } from "fs/promises";
-import { existsSync } from "fs";
+import { readFile, stat } from "fs/promises";
 import path from "path";
+import { getCoverImagePath, isSafePathSegment } from "@/lib/utils/fileSystem";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string; filename: string }> }
+  { params }: { params: Promise<{ slug: string; filename: string }> },
 ) {
   try {
     const { slug, filename } = await params;
-    const filepath = path.join(process.cwd(), "data", "novels", slug, filename);
+    if (
+      !isSafePathSegment(slug) ||
+      !isSafePathSegment(filename) ||
+      !/\.(jpg|jpeg|png|gif|webp)$/i.test(filename)
+    )
+      return new NextResponse("Cover not found", { status: 404 });
+    const filepath = await getCoverImagePath(slug, filename);
 
-    if (!existsSync(filepath)) {
+    if (!(await stat(filepath)).isFile()) {
       return new NextResponse("Cover not found", { status: 404 });
     }
 
@@ -30,9 +36,12 @@ export async function GET(
       headers: {
         "Content-Type": contentTypes[ext] || "application/octet-stream",
         "Cache-Control": "public, max-age=31536000, immutable",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT")
+      return new NextResponse("Cover not found", { status: 404 });
     console.error("Cover serve error:", error);
     return new NextResponse("Internal server error", { status: 500 });
   }

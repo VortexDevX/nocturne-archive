@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   FiGrid,
@@ -21,7 +22,7 @@ import {
 } from "react-icons/fi";
 import Button from "@/components/ui/Button";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
-import { useHamburger } from "../layout";
+import { useHamburger } from "@/components/layout/NavigationContext";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 
@@ -45,15 +46,12 @@ interface LibraryItem {
   lastStatusChange?: Date;
   lastReadAt?: Date;
   novel: Novel;
+  currentChapter?: number;
+  progressPercent?: number;
 }
 
 type TabType =
-  | "all"
-  | "reading"
-  | "completed"
-  | "planned"
-  | "dropped"
-  | "favorites";
+  "all" | "reading" | "completed" | "planned" | "dropped" | "favorites";
 type SortType = "recent" | "title" | "author" | "added";
 
 export default function LibraryPage() {
@@ -149,7 +147,10 @@ export default function LibraryPage() {
     // Search filter
     const matchesSearch =
       item.novel.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.novel.author.toLowerCase().includes(searchQuery.toLowerCase());
+      item.novel.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.novel.genres.some((genre) =>
+        genre.toLowerCase().includes(searchQuery.toLowerCase()),
+      );
 
     // Genre filter
     const matchesGenre =
@@ -213,37 +214,31 @@ export default function LibraryPage() {
       id: "all" as TabType,
       label: "All Books",
       count: tabCounts.all,
-      color: "blue",
     },
     {
       id: "reading" as TabType,
       label: "Reading",
       count: tabCounts.reading,
-      color: "green",
     },
     {
       id: "completed" as TabType,
       label: "Completed",
       count: tabCounts.completed,
-      color: "purple",
     },
     {
       id: "planned" as TabType,
       label: "Plan to Read",
       count: tabCounts.planned,
-      color: "orange",
     },
     {
       id: "dropped" as TabType,
       label: "Dropped",
       count: tabCounts.dropped,
-      color: "red",
     },
     {
       id: "favorites" as TabType,
       label: "Favorites",
       count: tabCounts.favorites,
-      color: "pink",
     },
   ];
 
@@ -267,7 +262,10 @@ export default function LibraryPage() {
                 <FiMenu className="h-5 w-5" />
               </button>
               <div>
-                <h2 className="text-lg font-bold">My Library</h2>
+                <span className="eyebrow">YOUR READING ROOM</span>
+                <h2 className="font-serif text-2xl font-normal">
+                  The books you come back to.
+                </h2>
                 <p className="text-xs text-muted-foreground">
                   {loading
                     ? "..."
@@ -287,6 +285,7 @@ export default function LibraryPage() {
             <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <input
               type="text"
+              aria-label="Search library"
               placeholder="Search your library..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -315,23 +314,24 @@ export default function LibraryPage() {
       </header>
 
       {/* Desktop Header */}
-      <header className="hidden lg:block border-b border-border bg-gradient-to-br from-primary/5 via-background to-background">
-        <div className="p-6 pb-4">
-          {/* Top Bar */}
-          <div className="flex items-center justify-between mb-6">
+      <header className="hidden lg:block border-b border-border bg-background">
+        <div className="p-8 pb-5">
+          <div className="flex items-end justify-between gap-6 mb-8">
             <div>
-              <h1 className="text-3xl font-bold mb-1 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-white">
-                  <FiBook className="w-5 h-5" />
-                </div>
-                My Library
+              <span className="eyebrow">YOUR PERSONAL ARCHIVE</span>
+              <h1 className="library-heading mt-3 mb-3">
+                The books you come back to.
               </h1>
-              <p className="text-muted-foreground text-sm">
-                {loading
-                  ? "Loading your collection..."
-                  : `${tabCounts.all} ${
-                      tabCounts.all === 1 ? "novel" : "novels"
-                    } in your collection`}
+              <p className="text-sm text-muted-foreground">
+                A place for every story. A little room to get lost.
+              </p>
+            </div>
+            <div className="text-right shrink-0 pb-1">
+              <p className="font-serif text-3xl text-primary">
+                {loading ? "—" : tabCounts.all}
+              </p>
+              <p className="text-[10px] tracking-widest text-muted-foreground uppercase mt-1">
+                on your shelves
               </p>
             </div>
           </div>
@@ -377,6 +377,7 @@ export default function LibraryPage() {
               <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <input
                 type="text"
+                aria-label="Search library"
                 placeholder="Search by title, author, genre..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -472,6 +473,8 @@ export default function LibraryPage() {
 
             <div className="flex items-center gap-1 bg-secondary/50 rounded-xl p-1 border border-border">
               <button
+                aria-label="Grid view"
+                aria-pressed={viewMode === "grid"}
                 onClick={() => setViewMode("grid")}
                 className={`p-2.5 rounded-lg transition-all ${
                   viewMode === "grid"
@@ -482,6 +485,8 @@ export default function LibraryPage() {
                 <FiGrid className="h-4 w-4" />
               </button>
               <button
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
                 onClick={() => setViewMode("list")}
                 className={`p-2.5 rounded-lg transition-all ${
                   viewMode === "list"
@@ -523,6 +528,8 @@ export default function LibraryPage() {
         </button>
         <div className="flex gap-1 bg-secondary/50 rounded-lg p-0.5">
           <button
+            aria-label="Grid view"
+            aria-pressed={viewMode === "grid"}
             onClick={() => setViewMode("grid")}
             className={`p-2 rounded-md transition-all ${
               viewMode === "grid" ? "bg-background shadow-sm" : ""
@@ -531,6 +538,8 @@ export default function LibraryPage() {
             <FiGrid className="h-4 w-4" />
           </button>
           <button
+            aria-label="List view"
+            aria-pressed={viewMode === "list"}
             onClick={() => setViewMode("list")}
             className={`p-2 rounded-md transition-all ${
               viewMode === "list" ? "bg-background shadow-sm" : ""
@@ -621,7 +630,49 @@ export default function LibraryPage() {
       )}
 
       {/* Content Area */}
-      <div className="flex-1 overflow-y-auto pb-20 lg:pb-6">
+      <div className="flex-1 min-h-0 overflow-y-auto pb-24 lg:pb-6">
+        {!loading &&
+          activeTab === "all" &&
+          !searchQuery &&
+          selectedGenres.length === 0 &&
+          libraryItems.some((item) => item.status === "reading") &&
+          (() => {
+            const book = [...libraryItems]
+              .filter((item) => item.status === "reading")
+              .sort(
+                (a, b) =>
+                  new Date(b.lastReadAt || b.addedAt).getTime() -
+                  new Date(a.lastReadAt || a.addedAt).getTime(),
+              )[0];
+            return (
+              <section
+                className="mx-4 lg:mx-8 mt-6 mb-2 p-5 sm:p-6 rounded-xl border border-primary/20 bg-primary/[0.05] flex items-center gap-5 sm:gap-8"
+                aria-label="Pick up where you left off"
+              >
+                <div className="hidden sm:flex w-12 h-16 shrink-0 border-l-4 border-primary/50 bg-primary/10 items-center justify-center rounded-r">
+                  <FiBookOpen className="text-primary w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="eyebrow">RIGHT WHERE YOU LEFT OFF</span>
+                  <h2 className="font-serif text-xl sm:text-2xl mt-2 truncate">
+                    {book.novel.title}
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Chapter {book.currentChapter || 1} of{" "}
+                    {book.novel.totalChapters} ·{" "}
+                    {Math.floor(book.progressPercent || 0)}% read
+                  </p>
+                </div>
+                <Link
+                  href={`/reader/${book.novel.slug}/${book.currentChapter || 1}`}
+                  className="reader-action shrink-0"
+                >
+                  <FiBookOpen />
+                  <span className="hidden sm:inline">Keep reading</span>
+                </Link>
+              </section>
+            );
+          })()}
         {loading ? (
           <div className="flex items-center justify-center h-64">
             <div className="text-center">
@@ -676,7 +727,7 @@ export default function LibraryPage() {
               transition={{ duration: 0.2 }}
             >
               {viewMode === "grid" ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 p-4 lg:gap-5 lg:p-6">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-x-5 gap-y-9 p-4 lg:gap-x-7 lg:p-8">
                   {sortedLibrary.map((item, i) => (
                     <NovelCard
                       key={item._id}
@@ -708,7 +759,7 @@ export default function LibraryPage() {
   );
 }
 
-// Novel Card Component
+// Each cover and title is a native link; shelf actions remain separate controls.
 function NovelCard({
   item,
   index,
@@ -720,174 +771,105 @@ function NovelCard({
   onRemove: (novelId: string) => void;
   onToggleFavorite: (novelId: string, currentFavorite: boolean) => void;
 }) {
-  const router = useRouter();
-  const [showMenu, setShowMenu] = useState(false);
-
-  const coverColors = [
-    "from-violet-500/20 to-fuchsia-500/20",
-    "from-cyan-500/20 to-blue-500/20",
-    "from-amber-500/20 to-orange-500/20",
-    "from-emerald-500/20 to-teal-500/20",
-    "from-pink-500/20 to-rose-500/20",
-    "from-indigo-500/20 to-purple-500/20",
-  ];
-
-  const statusConfig = {
-    reading: { color: "bg-green-500", label: "Reading" },
-    completed: { color: "bg-blue-500", label: "Completed" },
-    plan_to_read: { color: "bg-orange-500", label: "Plan to Read" },
-    dropped: { color: "bg-red-500", label: "Dropped" },
+  const colors = ["#485c53", "#65584c", "#445965", "#635860", "#605f43"];
+  const labels = {
+    reading: "Reading",
+    completed: "Finished",
+    plan_to_read: "For later",
+    dropped: "Set aside",
   };
-
-  const currentStatus = statusConfig[item.status];
-
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      whileHover={{ y: -6 }}
-      transition={{ delay: Math.min(index * 0.03, 0.3), duration: 0.3 }}
-      className="group cursor-pointer"
-      onClick={() => router.push(`/novel/${item.novel.slug}`)}
-    >
+    <div className="library-shelf group min-w-0">
       <div className="relative">
-        {/* Cover */}
-        <div
-          className={`relative aspect-[2/3] rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-300 border-2 border-border hover:border-primary/40 ${
-            !item.novel.coverImage
-              ? `bg-gradient-to-br ${coverColors[index % coverColors.length]}`
-              : ""
-          }`}
+        <Link
+          href={`/novel/${item.novel.slug}`}
+          className="block relative aspect-[2/3] rounded-r-lg rounded-l-sm overflow-hidden border border-border shadow-md transition-transform duration-200 hover:-translate-y-1 focus-visible:-translate-y-1"
+          aria-label={`View ${item.novel.title}`}
         >
           {item.novel.coverImage ? (
             <Image
               src={item.novel.coverImage}
-              alt={item.novel.title}
+              alt=""
               fill
               className="object-cover"
               unoptimized
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 18vw"
             />
           ) : (
-            <div className="absolute inset-0 p-4 flex flex-col items-center justify-center text-white text-center">
-              <div className="flex items-center justify-center w-14 h-14 mb-3">
-                <FiBookOpen className="w-10 h-10 text-white" />
+            <div
+              className="absolute inset-0 p-5 flex flex-col text-center items-center justify-between text-[#f5f0e6]"
+              style={{ background: colors[index % colors.length] }}
+            >
+              <span className="text-[9px] tracking-[0.2em] uppercase border-y border-white/20 py-2 w-full">
+                The Nocturne Archive
+              </span>
+              <div>
+                <FiBookOpen className="mx-auto w-7 h-7 opacity-60 mb-5" />
+                <h3 className="font-serif text-xl leading-snug line-clamp-4">
+                  {item.novel.title}
+                </h3>
               </div>
-              <div className="font-bold text-xs lg:text-sm line-clamp-3 px-2">
-                {item.novel.title}
-              </div>
+              <span className="text-[10px] opacity-75">
+                {item.novel.author}
+              </span>
             </div>
           )}
-
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300" />
-
-          {/* Hover Action */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-            <Button
-              variant="primary"
-              size="sm"
-              className="shadow-xl transform scale-90 group-hover:scale-100 transition-transform"
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/reader/${item.novel.slug}/1`);
-              }}
-            >
-              <FiBookOpen className="mr-1.5" />
-              {item.status === "reading"
-                ? "Continue"
-                : item.status === "completed"
-                  ? "Re-read"
-                  : "Read"}
-            </Button>
-          </div>
-
-          {/* Top Right Actions */}
-          <div className="absolute top-2 right-2 flex flex-col gap-2">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite(item.novelId, item.isFavorite);
-              }}
-              className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 hover:bg-black/80 transition-colors"
-            >
-              <FiHeart
-                className={`h-3.5 w-3.5 ${
-                  item.isFavorite ? "fill-red-500 text-red-500" : "text-white"
-                }`}
-              />
-            </button>
-            <div className="relative">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowMenu(!showMenu);
-                }}
-                className="p-1.5 rounded-lg bg-black/60 backdrop-blur-md border border-white/20 hover:bg-black/80 transition-colors"
-              >
-                <FiMoreVertical className="h-3.5 w-3.5 text-white" />
-              </button>
-
-              {showMenu && (
-                <>
-                  <div
-                    className="fixed inset-0 z-10"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowMenu(false);
-                    }}
-                  />
-                  <div className="absolute right-0 mt-2 w-40 bg-card border border-border rounded-xl shadow-2xl z-20 overflow-hidden">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemove(item.novelId);
-                        setShowMenu(false);
-                      }}
-                      className="w-full px-4 py-2.5 text-sm text-left hover:bg-red-500/10 text-red-500 transition-colors flex items-center gap-2 font-medium"
-                    >
-                      <FiTrash2 className="h-3.5 w-3.5" />
-                      Remove
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Status Badge */}
-          <div className="absolute top-2 left-2">
-            <span
-              className={`px-2 py-1 text-xs rounded-lg ${currentStatus.color} text-white font-bold shadow-lg`}
-            >
-              {currentStatus.label}
-            </span>
-          </div>
-        </div>
-
-        {/* Info */}
-        <div className="mt-3 px-1">
-          <h3 className="font-bold text-sm lg:text-base mb-1 line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-            {item.novel.title}
-          </h3>
-          <p className="text-xs text-muted-foreground mb-2 truncate">
-            {item.novel.author}
-          </p>
-
-          {/* Genres */}
-          <div className="flex flex-wrap gap-1">
-            {item.novel.genres.slice(0, 2).map((genre) => (
-              <span
-                key={genre}
-                className="px-1.5 py-0.5 rounded bg-purple-500/15 text-purple-500 text-[10px] font-medium border border-purple-500/20"
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-        </div>
+          <div className="absolute inset-y-0 left-0 w-2.5 border-r border-black/10 bg-gradient-to-r from-black/20 to-transparent pointer-events-none" />
+        </Link>
+        <button
+          onClick={() => onToggleFavorite(item.novelId, item.isFavorite)}
+          aria-label={`${item.isFavorite ? "Unfavorite" : "Favorite"} ${item.novel.title}`}
+          aria-pressed={item.isFavorite}
+          className="absolute top-2 right-2 w-10 h-10 rounded-full flex items-center justify-center bg-black/55 text-white hover:bg-black/75"
+        >
+          <FiHeart
+            className={`h-4 w-4 ${item.isFavorite ? "fill-current text-danger" : ""}`}
+          />
+        </button>
       </div>
-    </motion.div>
+      <div className="pt-3.5">
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <span className="text-[9px] uppercase tracking-widest text-primary">
+            {labels[item.status]}
+          </span>
+          <button
+            onClick={() => onRemove(item.novelId)}
+            aria-label={`Remove ${item.novel.title} from library`}
+            className="text-muted-foreground hover:text-danger p-2 -m-2"
+          >
+            <FiTrash2 className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <Link
+          href={`/novel/${item.novel.slug}`}
+          className="font-serif text-lg leading-snug line-clamp-2 hover:text-primary"
+        >
+          {item.novel.title}
+        </Link>
+        <p className="text-xs text-muted-foreground mt-1.5 truncate">
+          {item.novel.author}
+        </p>
+        <div className="flex items-center justify-between gap-2 mt-3 text-[10px] text-muted-foreground">
+          <span>{item.novel.totalChapters.toLocaleString()} chapters</span>
+          <Link
+            href={`/reader/${item.novel.slug}/${item.currentChapter || 1}`}
+            className="text-primary font-semibold py-2"
+          >
+            {item.currentChapter && item.currentChapter > 1
+              ? "Resume →"
+              : "Read →"}
+          </Link>
+        </div>
+        {item.status === "reading" && (
+          <div className="h-0.5 bg-secondary mt-1 overflow-hidden rounded">
+            <div
+              className="h-full bg-primary"
+              style={{ width: `${Math.min(100, item.progressPercent || 0)}%` }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -906,30 +888,22 @@ function NovelListItem({
   const router = useRouter();
   const [showMenu, setShowMenu] = useState(false);
 
-  const coverColors = [
-    "from-violet-500/20 to-fuchsia-500/20",
-    "from-cyan-500/20 to-blue-500/20",
-    "from-amber-500/20 to-orange-500/20",
-    "from-emerald-500/20 to-teal-500/20",
-    "from-pink-500/20 to-rose-500/20",
-    "from-indigo-500/20 to-purple-500/20",
-  ];
 
   const statusConfig = {
     reading: {
-      color: "bg-green-500/15 text-green-500 border-green-500/20",
+      color: "bg-success/15 text-success border-success/20",
       label: "Reading",
     },
     completed: {
-      color: "bg-blue-500/15 text-blue-500 border-blue-500/20",
+      color: "bg-primary/15 text-primary border-primary/20",
       label: "Completed",
     },
     plan_to_read: {
-      color: "bg-orange-500/15 text-orange-500 border-orange-500/20",
+      color: "bg-warning/15 text-warning border-warning/20",
       label: "Plan to Read",
     },
     dropped: {
-      color: "bg-red-500/15 text-red-500 border-red-500/20",
+      color: "bg-danger/15 text-danger border-danger/20",
       label: "Dropped",
     },
   };
@@ -948,7 +922,7 @@ function NovelListItem({
       <div
         className={`relative w-16 h-24 lg:w-20 lg:h-28 rounded-xl flex-shrink-0 overflow-hidden shadow-lg border-2 border-white/10 ${
           !item.novel.coverImage
-            ? `bg-gradient-to-br ${coverColors[index % coverColors.length]}`
+            ? "bg-primary/10"
             : ""
         }`}
       >
@@ -963,7 +937,7 @@ function NovelListItem({
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-3xl">
-            <FiBookOpen className="w-10 h-10 text-white" />
+            <FiBookOpen className="w-10 h-10 text-primary" />
           </div>
         )}
       </div>
@@ -992,7 +966,7 @@ function NovelListItem({
             >
               <FiHeart
                 className={`h-4 w-4 ${
-                  item.isFavorite ? "fill-red-500 text-red-500" : ""
+                  item.isFavorite ? "fill-red-500 text-danger" : ""
                 }`}
               />
             </button>
@@ -1023,7 +997,7 @@ function NovelListItem({
                         onRemove(item.novelId);
                         setShowMenu(false);
                       }}
-                      className="w-full px-4 py-2.5 text-sm text-left hover:bg-red-500/10 text-red-500 transition-colors flex items-center gap-2 font-medium"
+                      className="w-full px-4 py-2.5 text-sm text-left hover:bg-danger/10 text-danger transition-colors flex items-center gap-2 font-medium"
                     >
                       <FiTrash2 className="h-3.5 w-3.5" />
                       Remove
@@ -1040,7 +1014,7 @@ function NovelListItem({
           {item.novel.genres.slice(0, 3).map((genre) => (
             <span
               key={genre}
-              className="px-2.5 py-1 text-xs rounded-lg bg-purple-500/15 text-purple-500 font-medium border border-purple-500/20"
+              className="px-2.5 py-1 text-xs rounded-lg bg-primary/15 text-primary font-medium border border-primary/20"
             >
               {genre}
             </span>
@@ -1067,7 +1041,9 @@ function NovelListItem({
             className="hidden sm:flex"
             onClick={(e) => {
               e.stopPropagation();
-              router.push(`/reader/${item.novel.slug}/1`);
+              router.push(
+                `/reader/${item.novel.slug}/${item.currentChapter || 1}`,
+              );
             }}
           >
             <FiBookOpen className="mr-1.5" />

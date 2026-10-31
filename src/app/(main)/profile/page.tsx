@@ -19,7 +19,7 @@ import {
 } from "react-icons/fi";
 import { UserStats } from "@/types";
 import ThemeDropdown from "@/components/ui/ThemeDropdown";
-import { useHamburger } from "../layout";
+import { useHamburger } from "@/components/layout/NavigationContext";
 import AvatarUploadModal from "@/components/profile/AvatarUploadModal";
 import EditUsernameModal from "@/components/profile/EditUsernameModal";
 import EditEmailModal from "@/components/profile/EditEmailModal";
@@ -127,7 +127,7 @@ export default function ProfilePage() {
       </header>
 
       {/* Desktop Header */}
-      <header className="hidden lg:block border-b border-border bg-gradient-to-br from-primary/5 via-background to-background">
+      <header className="hidden lg:block border-b border-border bg-card ">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <h1 className="text-3xl font-bold mb-2">Profile</h1>
           <p className="text-muted-foreground">
@@ -142,10 +142,10 @@ export default function ProfilePage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-2xl border-2 border-border bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-blue-500/10"
+            className="relative overflow-hidden rounded-2xl border-2 border-border bg-card "
           >
             {/* Background Pattern */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(120,119,198,0.1),transparent_50%)]" />
+
 
             <div className="relative p-6 lg:p-8">
               <div className="flex flex-col sm:flex-row items-center gap-6">
@@ -162,7 +162,7 @@ export default function ProfilePage() {
                         sizes="(max-width: 1024px) 112px, 144px"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-5xl lg:text-6xl">
+                      <div className="w-full h-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-5xl lg:text-6xl">
                         {user?.username?.charAt(0).toUpperCase() || "U"}
                       </div>
                     )}
@@ -208,19 +208,16 @@ export default function ProfilePage() {
                         icon={<FiBook />}
                         label="Novels"
                         value={stats?.totalNovelsRead || 0}
-                        color="blue"
                       />
                       <QuickStat
                         icon={<FiClock />}
                         label="Chapters"
                         value={stats?.totalChaptersRead || 0}
-                        color="purple"
                       />
                       <QuickStat
                         icon={<FiTrendingUp />}
                         label="Day Streak"
                         value={stats?.currentStreak || 0}
-                        color="orange"
                       />
                     </div>
                   )}
@@ -257,25 +254,21 @@ export default function ProfilePage() {
                   icon={<FiBook />}
                   label="Novels Read"
                   value={stats?.totalNovelsRead.toString() || "0"}
-                  color="from-blue-500 to-cyan-500"
                 />
                 <StatCard
                   icon={<FiClock />}
                   label="Chapters"
                   value={stats?.totalChaptersRead.toLocaleString() || "0"}
-                  color="from-purple-500 to-pink-500"
                 />
                 <StatCard
                   icon={<FiTrendingUp />}
                   label="Current Streak"
                   value={`${stats?.currentStreak || 0} days`}
-                  color="from-orange-500 to-red-500"
                 />
                 <StatCard
                   icon={<FiClock />}
                   label="Hours Read"
                   value={`${stats?.hoursRead || 0}h`}
-                  color="from-green-500 to-emerald-500"
                 />
               </div>
             )}
@@ -292,7 +285,7 @@ export default function ProfilePage() {
               {/* Words Read */}
               <div className="bg-card rounded-2xl border-2 border-border p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
                     <FiZap />
                   </div>
                   <div>
@@ -307,7 +300,7 @@ export default function ProfilePage() {
               {/* Longest Streak */}
               <div className="bg-card rounded-2xl border-2 border-border p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-500 to-orange-500 flex items-center justify-center text-white">
+                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
                     <FiAward />
                   </div>
                   <div>
@@ -392,7 +385,7 @@ export default function ProfilePage() {
           >
             <button
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all font-bold border-2 border-red-500/20 hover:border-red-500/30"
+              className="w-full flex items-center justify-center gap-3 p-4 rounded-2xl bg-danger/10 text-danger hover:bg-danger/20 transition-all font-bold border-2 border-danger/20 hover:border-danger/30"
             >
               <FiLogOut className="h-5 w-5" />
               Logout from Account
@@ -427,23 +420,16 @@ function QuickStat({
   icon,
   label,
   value,
-  color,
 }: {
   icon: React.ReactNode;
   label: string;
   value: number;
-  color: string;
 }) {
-  const colorMap: Record<string, string> = {
-    blue: "bg-blue-500/20 text-blue-500",
-    purple: "bg-purple-500/20 text-purple-500",
-    orange: "bg-orange-500/20 text-orange-500",
-  };
 
   return (
     <div className="flex items-center gap-2">
       <div
-        className={`w-8 h-8 rounded-lg ${colorMap[color]} flex items-center justify-center text-sm`}
+        className={`w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-sm`}
       >
         {icon}
       </div>
@@ -460,17 +446,15 @@ function StatCard({
   icon,
   label,
   value,
-  color,
 }: {
   icon: React.ReactNode;
   label: string;
   value: string;
-  color: string;
 }) {
   return (
     <div className="bg-card rounded-2xl border-2 border-border p-5 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5 transition-all group">
       <div
-        className={`w-12 h-12 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center text-white mb-4 group-hover:scale-110 transition-transform shadow-lg`}
+        className={`w-12 h-12 rounded-xl bg-primary flex items-center justify-center text-primary-foreground mb-4 group-hover:scale-110 transition-transform shadow-lg`}
       >
         {icon}
       </div>

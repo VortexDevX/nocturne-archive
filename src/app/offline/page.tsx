@@ -1,8 +1,9 @@
+import { FiWifiOff } from "react-icons/fi";
 export default function OfflinePage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-6 text-center">
       <div className="max-w-md space-y-4">
-        <div className="text-6xl">📴</div>
+        <FiWifiOff className="h-12 w-12 mx-auto text-primary" aria-hidden="true" />
         <h1 className="text-2xl font-bold">You’re offline</h1>
         <p className="text-sm text-muted-foreground">
           This page isn’t available offline yet. Use Downloads to cache
