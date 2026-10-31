@@ -84,7 +84,7 @@ export default function LoginPage() {
             className="mb-4 inline-flex items-center justify-center"
           >
             <Image
-              src="/brand/nocturne-mark.png"
+              src="/brand/nocturne-mark-64.png"
               alt="Nocturne"
               width={64}
               height={64}

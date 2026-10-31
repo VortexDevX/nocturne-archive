@@ -2,8 +2,8 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { FiBook } from "react-icons/fi";
 
 export default function Home() {
   const router = useRouter();
@@ -46,9 +46,15 @@ export default function Home() {
             repeat: Infinity,
             repeatType: "reverse",
           }}
-          className="mb-8 text-8xl"
+          className="mx-auto mb-8 w-16"
         >
-          <FiBook className="w-20 h-20 text-primary" />
+          <Image
+            src="/brand/nocturne-mark-64.png"
+            alt="Nocturne"
+            width={64}
+            height={64}
+            priority
+          />
         </motion.div>
         <h1 className="mb-4 text-4xl font-bold text-foreground font-serif font-normal tracking-tight">
           Nocturne

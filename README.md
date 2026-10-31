@@ -49,7 +49,7 @@ npm run build
    ```json
    [
      {
-       "AllowedOrigins": ["https://your-app.vercel.app"],
+       "AllowedOrigins": ["https://nocturne.vxdev.in", "http://localhost:3000"],
        "AllowedMethods": ["PUT"],
        "AllowedHeaders": ["Content-Type", "If-None-Match"],
        "ExposeHeaders": ["ETag"],
