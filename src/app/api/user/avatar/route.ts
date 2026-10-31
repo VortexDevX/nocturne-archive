@@ -1,3 +1,4 @@
+import { usesR2 } from "@/lib/storage/config";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
@@ -17,6 +18,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (usesR2()) return NextResponse.json({ success: false, message: "Use direct avatar upload" }, { status: 409 });
     const formData = await request.formData();
     const file = formData.get("avatar") as File;
 
@@ -35,12 +37,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
+    // Validate file size (3MB max)
+    if (file.size > 3 * 1024 * 1024) {
       return NextResponse.json(
         {
           success: false,
-          message: "File size must be less than 5MB",
+          message: "File size must be less than 3MB",
         } as ApiResponse,
         { status: 400 }
       );

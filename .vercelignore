@@ -1,0 +1,14 @@
+.git
+.agents
+.env*
+docs
+scripts
+data
+uploads
+node_modules
+.next
+coverage
+PROJECT_Audit.md
+AGENTS.md
+.hintrc
+public/brand/nocturne-mark.png

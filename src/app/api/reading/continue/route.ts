@@ -1,3 +1,4 @@
+import { readableNovelFilter } from "@/lib/storage/config";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
@@ -49,11 +50,18 @@ export async function GET(request: NextRequest) {
 
     const novels = await NovelModel.find({
       slug: { $in: progressList.map((progress) => progress.novelId) },
+      ...readableNovelFilter(),
     })
-      .select("title author coverImage totalChapters genres slug")
+      .select("title author coverImage totalChapters genres slug storageBackend")
       .lean();
     const novelMap = new Map(novels.map((novel) => [novel.slug, novel]));
 
+    const remoteChapterTitles = new Map<string, string>();
+    if (novels.some((novel) => novel.storageBackend === "r2")) {
+      const ChapterModel = (await import("@/lib/db/models/Chapter")).default;
+      const chapters = await ChapterModel.find({ $or: progressList.map((progress) => ({ novelSlug: progress.novelId, number: progress.currentChapter })), verified: true }).select("novelSlug number title").lean();
+      for (const chapter of chapters) remoteChapterTitles.set(`${chapter.novelSlug}:${chapter.number}`, chapter.title);
+    }
     // One metadata query for the whole shelf.
     const continueReadingData = await Promise.all(
       progressList.map(async (progress) => {
@@ -106,7 +114,9 @@ export async function GET(request: NextRequest) {
         let actualTotalChapters = novelData.totalChapters;
 
         try {
-          const chapters = await readChaptersMetadata(progress.novelId);
+          const chapters = novelFromDB?.storageBackend === "r2"
+            ? [{ number: progress.currentChapter, title: remoteChapterTitles.get(`${progress.novelId}:${progress.currentChapter}`) || currentChapterTitle }]
+            : await readChaptersMetadata(progress.novelId);
 
           // If totalChapters is 0 or missing, count from chapters.json
           if (!actualTotalChapters || actualTotalChapters === 0) {

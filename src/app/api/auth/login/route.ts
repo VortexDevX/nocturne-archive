@@ -65,7 +65,6 @@ export async function POST(req: NextRequest) {
       {
         success: true,
         user: userPayload,
-        token,
         message: "Login successful",
       } as AuthResponse,
       { status: 200 }
@@ -81,12 +80,11 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error: unknown) {
-    console.error("Login error:", error);
+    console.error("Login error:", error instanceof Error ? error.name : "UnknownError");
     return NextResponse.json(
       {
         success: false,
         message: "Internal server error",
-        error: error instanceof Error ? error.message : "Internal server error",
       } as AuthResponse,
       { status: 500 }
     );

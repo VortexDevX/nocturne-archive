@@ -23,6 +23,7 @@ if (!global.mongoose) {
 }
 
 async function connectDB(): Promise<typeof mongoose> {
+  if (process.env.VERCEL && !process.env.MONGODB_URI) throw new Error("MONGODB_URI is required on Vercel");
   if (cached.conn) {
     return cached.conn;
   }
@@ -30,6 +31,9 @@ async function connectDB(): Promise<typeof mongoose> {
   if (!cached.promise) {
     const opts = {
       bufferCommands: false,
+      dbName: process.env.MONGODB_DB_NAME || (MONGODB_URI.replace(/^mongodb(?:\+srv)?:\/\/[^/]+/, "").split("?")[0].replace(/^\//, "") || "nocturne"),
+      maxPoolSize: 5,
+      serverSelectionTimeoutMS: 10000,
     };
 
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {

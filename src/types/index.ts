@@ -5,6 +5,7 @@ export interface User {
   email: string;
   password?: string;
   profilePicture?: string;
+  avatarObjectKey?: string;
   canUpload?: boolean;
   isAdmin?: boolean;
   createdAt: Date;
@@ -34,6 +35,13 @@ export interface Novel {
   status: "ongoing" | "completed" | "hiatus";
   totalChapters: number;
   folderPath: string;
+  storageBackend?: "r2" | "local";
+  coverObjectKey?: string;
+  uploadState?: "draft" | "uploading" | "ready" | "failed";
+  uploadId?: string;
+  expectedChapters?: number;
+  coverBytes?: number;
+  coverSha256?: string;
   addedBy: string;
   isPublic: boolean;
   chapters?: ChapterMetadata[];
@@ -177,7 +185,6 @@ export interface ApiResponse<T = unknown> {
 export interface AuthResponse {
   success: boolean;
   user?: Omit<User, "password">;
-  token?: string;
   message?: string;
 }
 

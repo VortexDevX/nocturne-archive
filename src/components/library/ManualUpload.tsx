@@ -16,6 +16,8 @@ import {
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import toast from "react-hot-toast";
+import { parseChaptersFromText } from "@/lib/utils/chapterParser";
+import { prepareNovel, uploadChapters } from "@/lib/storage/upload-client";
 import { useRouter } from "next/navigation";
 import {
   parseTitlesFile,
@@ -40,9 +42,12 @@ export default function ManualUpload() {
   const coverInputRef = useRef<HTMLInputElement>(null);
   const chaptersInputRef = useRef<HTMLInputElement>(null);
   const titlesInputRef = useRef<HTMLInputElement>(null);
+  const combinedInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1); // 1: Metadata, 2: Chapters, 3: Preview
   const [loading, setLoading] = useState(false);
+  const [backend, setBackend] = useState<"local" | "r2">("local");
+  const [uploadProgress, setUploadProgress] = useState("");
   const [novelSlug, setNovelSlug] = useState("");
 
   // Form state
@@ -75,6 +80,19 @@ export default function ManualUpload() {
       };
       reader.readAsDataURL(file);
     }
+  };
+
+  const handleCombinedFile = async (file?: File) => {
+    if (!file) return;
+    try {
+      setLoading(true);
+      const chapters = parseChaptersFromText(await file.text());
+      if (!chapters.length) throw new Error("No chapters detected. Check chapter headings.");
+      setChapterFiles(chapters.map((chapter, index) => new File([chapter.content], `chapter-${index + 1}.txt`, { type: "text/plain" })));
+      setTitlesMap(new Map(chapters.map((chapter, index) => [index + 1, chapter.title])));
+      toast.success(`Detected ${chapters.length} chapters`);
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not parse file"); }
+    finally { setLoading(false); }
   };
 
   const handleChaptersSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -125,6 +143,11 @@ export default function ManualUpload() {
     setLoading(true);
 
     try {
+      const prepared = await prepareNovel({ title, author, description, genres: selectedGenres, status }, coverFile);
+      if (prepared.backend === "r2") {
+        setBackend("r2"); setNovelSlug(prepared.slug!); setStep(2);
+        toast.success("Novel reserved. Add chapters to finish."); return;
+      }
       const formData = new FormData();
       formData.append("title", title);
       formData.append("author", author);
@@ -150,8 +173,8 @@ export default function ManualUpload() {
         toast.error(data.message || "Failed to create novel");
       }
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload novel");
+
+      toast.error(error instanceof Error ? error.message : "Failed to upload novel");
     } finally {
       setLoading(false);
     }
@@ -199,6 +222,10 @@ export default function ManualUpload() {
 
       formData.append("titles", JSON.stringify(titlesData));
 
+      if (backend === "r2") {
+        await uploadChapters(novelSlug, chapterFiles, titlesData, (done, total) => setUploadProgress(`Uploaded ${done} of ${total} chapters`));
+        toast.success("Novel ready to read"); router.push("/library"); return;
+      }
       const response = await fetch("/api/novels/upload/chapters", {
         method: "POST",
         body: formData,
@@ -213,8 +240,8 @@ export default function ManualUpload() {
         toast.error(data.message || "Failed to upload chapters");
       }
     } catch (error) {
-      console.error("Chapter upload error:", error);
-      toast.error("Failed to upload chapters");
+
+      toast.error(error instanceof Error ? error.message : "Failed to upload chapters");
     } finally {
       setLoading(false);
     }
@@ -222,6 +249,7 @@ export default function ManualUpload() {
 
   return (
     <div className="space-y-6">
+      {uploadProgress && <p role="status" className="text-sm text-primary">{uploadProgress}</p>}
       {/* Progress Steps */}
       <div className="flex items-center gap-4">
         <div
@@ -429,6 +457,12 @@ export default function ManualUpload() {
           animate={{ opacity: 1, x: 0 }}
           className="space-y-6"
         >
+          <div className="bg-card border border-border rounded-xl p-5">
+            <h3 className="font-medium mb-2">Import a complete book</h3>
+            <p className="text-sm text-muted-foreground mb-4">Split a TXT or MD book into chapters on your device. Review titles before uploading.</p>
+            <input ref={combinedInputRef} className="hidden" type="file" accept=".txt,.md" onChange={(event) => void handleCombinedFile(event.target.files?.[0])} />
+            <Button variant="secondary" disabled={loading} onClick={() => combinedInputRef.current?.click()}>Choose book file</Button>
+          </div>
           {/* Chapter Files Upload */}
           <div className="bg-card rounded-xl border border-border p-6">
             <h3 className="text-lg font-bold mb-4">

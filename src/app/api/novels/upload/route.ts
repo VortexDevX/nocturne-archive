@@ -1,3 +1,4 @@
+import { usesR2 } from "@/lib/storage/config";
 import { NextRequest, NextResponse } from "next/server";
 import {
   createUploadedNovel,
@@ -10,6 +11,7 @@ export async function POST(request: NextRequest) {
   try {
     const access = await requireNovelUploader();
     if (access.response) return access.response;
+    if (usesR2()) return NextResponse.json({ success: false, message: "Use direct storage uploads" }, { status: 409 });
     const form = await request.formData();
     let genres: unknown;
     try {

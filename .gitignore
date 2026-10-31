@@ -31,9 +31,8 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files
-.env
-.env*.local
-.env.local
+.env*
+!.env.example
 
 # vercel
 .vercel
@@ -53,3 +52,17 @@ public/workbox-*.js
 Overview.md
 structure.md
 .agents
+
+# Local planning, audits, migration tools, and original artwork
+/docs/
+/scripts/
+/PROJECT_Audit.md
+/.hintrc
+/public/brand/nocturne-mark.png
+
+# Local editor and operating-system files
+/.vscode/
+/.idea/
+Thumbs.db
+Desktop.ini
+*.log

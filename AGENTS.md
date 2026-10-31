@@ -16,7 +16,7 @@
 
 ## Architecture and Data Contracts
 
-- Dual-layer storage: MongoDB stores relational metadata (`users`, `userpreferences`, `novels`, `readingprogresses`, `bookmarks`); local filesystem (`uploads/`) stores novel raw content, chapter files (`uploads/novels/<slug>/chapters/chapter-<num>.txt`), and cover images (`uploads/novels/<slug>/cover.*`).
+- Production storage: MongoDB Atlas stores account/novel metadata, chapter indexes, progress, bookmarks, and libraries; private Cloudflare R2 stores chapter bodies, covers, and avatars. Use authenticated API proxies for reads and verified presigned browser uploads. Local filesystem storage exists only for development/migration fallback; never depend on runtime local writes or scans on Vercel.
 - Never delete or bypass local filesystem paths without verifying existence via `fs.stat` / `fs.access`.
 - Authentication uses HTTP-only JWT cookies (`nocturne-token`) signed using `jose` with `HS256`. Never expose JWT tokens, raw authorization headers, or sensitive user fields (`password`) in client payloads or server logs.
 - Strict role checking (`isAdmin`, `canUpload`) is required on all administrative routes (`/admin`, `/api/admin/*`) and novel upload endpoints (`/admin/upload`, `/api/novels/upload/*`).

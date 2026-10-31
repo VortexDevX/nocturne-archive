@@ -1,3 +1,8 @@
+import { getSession } from "@/lib/auth/session";
+import { usesR2, allowsLocalFallback } from "@/lib/storage/config";
+import connectDB from "@/lib/db/mongodb";
+import NovelModel from "@/lib/db/models/Novel";
+import { getObject } from "@/lib/storage/r2";
 import { NextRequest, NextResponse } from "next/server";
 import { readFile, stat } from "fs/promises";
 import path from "path";
@@ -8,6 +13,7 @@ export async function GET(
   { params }: { params: Promise<{ slug: string; filename: string }> },
 ) {
   try {
+    if (!await getSession()) return new NextResponse("Unauthorized", { status: 401 });
     const { slug, filename } = await params;
     if (
       !isSafePathSegment(slug) ||
@@ -15,6 +21,15 @@ export async function GET(
       !/\.(jpg|jpeg|png|gif|webp)$/i.test(filename)
     )
       return new NextResponse("Cover not found", { status: 404 });
+    if (usesR2()) {
+      await connectDB();
+      const novel = await NovelModel.findOne({ slug, storageBackend: "r2", uploadState: "ready" }).select("coverObjectKey").lean();
+      if (novel?.coverObjectKey && novel.coverObjectKey.split("/").pop() === filename) {
+        const type = /\.jpe?g$/i.test(filename) ? "image/jpeg" : `image/${filename.split(".").pop()}`;
+        return new NextResponse(new Uint8Array(await getObject(novel.coverObjectKey)), { headers: { "Content-Type": type, "Cache-Control": "private, max-age=31536000, immutable", "Vary": "Cookie", "X-Content-Type-Options": "nosniff" } });
+      }
+      if (!allowsLocalFallback()) return new NextResponse("Cover not found", { status: 404 });
+    }
     const filepath = await getCoverImagePath(slug, filename);
 
     if (!(await stat(filepath)).isFile()) {
@@ -35,7 +50,7 @@ export async function GET(
     return new NextResponse(new Uint8Array(file), {
       headers: {
         "Content-Type": contentTypes[ext] || "application/octet-stream",
-        "Cache-Control": "public, max-age=31536000, immutable",
+        "Cache-Control": "private, max-age=31536000, immutable",
         "X-Content-Type-Options": "nosniff",
       },
     });

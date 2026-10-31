@@ -24,6 +24,7 @@ const UserSchema = new Schema<User>(
       required: [true, "Password is required"],
       minlength: [6, "Password must be at least 6 characters"],
     },
+    avatarObjectKey: String,
     profilePicture: {
       type: String,
       default: "",

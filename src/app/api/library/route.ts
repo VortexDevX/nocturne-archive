@@ -1,3 +1,4 @@
+import { readableNovelFilter } from "@/lib/storage/config";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
 
     const novelIds = libraryItems.map((item) => item.novelId);
     const [novels, progresses] = await Promise.all([
-      NovelModel.find({ slug: { $in: novelIds } })
+      NovelModel.find({ slug: { $in: novelIds }, ...readableNovelFilter() })
         .select("slug title author coverImage genres status totalChapters")
         .lean(),
       ReadingProgressModel.find({

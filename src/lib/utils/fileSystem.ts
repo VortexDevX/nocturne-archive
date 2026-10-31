@@ -1,3 +1,4 @@
+import { usesR2, allowsLocalFallback } from "@/lib/storage/config";
 import { promises as fs } from "fs";
 import path from "path";
 import { NovelMetadata, ChapterMetadata } from "@/types";
@@ -43,6 +44,10 @@ export async function getNovelDirectory(slug: string): Promise<string> {
  */
 export async function getNovelFolders(): Promise<string[]> {
   const folders = new Set<string>();
+  if (usesR2()) {
+    for (const slug of await (await import("@/lib/storage/catalog")).remoteSlugs()) folders.add(slug);
+    if (!allowsLocalFallback()) return [...folders];
+  }
   for (const root of [NOVELS_DIR, LEGACY_NOVELS_DIR]) {
     try {
       await fs.stat(root);
@@ -62,6 +67,11 @@ export async function getNovelFolders(): Promise<string[]> {
 export async function readNovelMetadata(
   slug: string,
 ): Promise<NovelMetadata | null> {
+  requireSafeSegment(slug);
+  if (usesR2()) {
+    const metadata = await (await import("@/lib/storage/catalog")).remoteMetadata(slug);
+    if (metadata || !allowsLocalFallback()) return metadata;
+  }
   try {
     const metadataPath = path.join(
       await getNovelDirectory(slug),
@@ -81,6 +91,11 @@ export async function readNovelMetadata(
 export async function readChaptersMetadata(
   slug: string,
 ): Promise<ChapterMetadata[]> {
+  requireSafeSegment(slug);
+  if (usesR2()) {
+    const chapters = await (await import("@/lib/storage/catalog")).remoteChapters(slug);
+    if (chapters || !allowsLocalFallback()) return chapters || [];
+  }
   try {
     const chaptersPath = path.join(
       await getNovelDirectory(slug),
@@ -101,6 +116,13 @@ export async function readChapterContent(
   slug: string,
   filename: string,
 ): Promise<string | null> {
+  requireSafeSegment(slug);
+  requireSafeSegment(filename);
+  if (usesR2()) {
+    const number = Number(filename.match(/^(?:chapter-)?(\d+)\.txt$/)?.[1]);
+    const chapter = number ? await (await import("@/lib/storage/catalog")).remoteChapter(slug, number) : null;
+    if (chapter || !allowsLocalFallback()) return chapter?.content || null;
+  }
   try {
     requireSafeSegment(filename);
     const chapterPath = path.join(
@@ -161,6 +183,7 @@ export async function createNovelFolder(slug: string): Promise<void> {
  * Check if novel exists
  */
 export async function novelExists(slug: string): Promise<boolean> {
+  if (usesR2()) return Boolean(await readNovelMetadata(slug));
   try {
     const novelPath = await getNovelDirectory(slug);
     await fs.access(novelPath);

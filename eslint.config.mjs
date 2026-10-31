@@ -5,6 +5,10 @@ const eslintConfig = [
   {
     ignores: [
       "node_modules/**",
+      "scripts/**",
+      "docs/**",
+      "data/**",
+      "uploads/**",
       ".next/**",
       ".agents/**",
       "public/**",

@@ -1,3 +1,4 @@
+import { usesR2, allowsLocalFallback } from "@/lib/storage/config";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import {
@@ -20,15 +21,20 @@ export async function GET(
     }
 
     const { slug, chapterNumber } = await params;
-    const chapterNum = parseInt(chapterNumber, 10);
+    const chapterNum = Number(chapterNumber);
 
-    if (isNaN(chapterNum)) {
+    if (!Number.isSafeInteger(chapterNum) || chapterNum < 1) {
       return NextResponse.json(
         { success: false, message: "Invalid chapter number" } as ApiResponse,
         { status: 400 },
       );
     }
 
+    if (usesR2()) {
+      const chapter = await (await import("@/lib/storage/catalog")).remoteChapter(slug, chapterNum);
+      if (chapter) return NextResponse.json({ success: true, data: chapter }, { headers: { "Cache-Control": "private, no-store" } });
+      if (!allowsLocalFallback()) return NextResponse.json({ success: false, message: "Chapter not found" }, { status: 404 });
+    }
     const chapters = await readChaptersMetadata(slug);
     const chapter = chapters.find((ch) => ch.number === chapterNum);
 

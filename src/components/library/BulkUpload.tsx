@@ -17,6 +17,7 @@ import {
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import toast from "react-hot-toast";
+import { prepareNovel, uploadChapters } from "@/lib/storage/upload-client";
 import { useRouter } from "next/navigation";
 import {
   parseTitlesFile,
@@ -44,6 +45,8 @@ export default function BulkUpload() {
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [backend, setBackend] = useState<"local" | "r2">("local");
+  const [uploadProgress, setUploadProgress] = useState("");
   const [novelSlug, setNovelSlug] = useState("");
 
   const [title, setTitle] = useState("");
@@ -129,6 +132,11 @@ export default function BulkUpload() {
     setLoading(true);
 
     try {
+      const prepared = await prepareNovel({ title, author, description, genres: selectedGenres, status }, coverFile);
+      if (prepared.backend === "r2") {
+        setBackend("r2"); setNovelSlug(prepared.slug!); setStep(2);
+        toast.success("Novel reserved. Add chapters to finish."); return;
+      }
       const formData = new FormData();
       formData.append("title", title);
       formData.append("author", author);
@@ -154,8 +162,8 @@ export default function BulkUpload() {
         toast.error(data.message || "Failed to create novel");
       }
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload novel");
+
+      toast.error(error instanceof Error ? error.message : "Failed to upload novel");
     } finally {
       setLoading(false);
     }
@@ -200,6 +208,10 @@ export default function BulkUpload() {
 
       formData.append("titles", JSON.stringify(titlesData));
 
+      if (backend === "r2") {
+        await uploadChapters(novelSlug, chapterFiles, titlesData, (done, total) => setUploadProgress(`Uploaded ${done} of ${total} chapters`));
+        toast.success("Novel ready to read"); router.push("/library"); return;
+      }
       const response = await fetch("/api/novels/upload/chapters", {
         method: "POST",
         body: formData,
@@ -214,8 +226,8 @@ export default function BulkUpload() {
         toast.error(data.message || "Failed to upload chapters");
       }
     } catch (error) {
-      console.error("Chapter upload error:", error);
-      toast.error("Failed to upload chapters");
+
+      toast.error(error instanceof Error ? error.message : "Failed to upload chapters");
     } finally {
       setLoading(false);
     }
@@ -223,6 +235,7 @@ export default function BulkUpload() {
 
   return (
     <div className="space-y-6">
+      {uploadProgress && <p role="status" className="text-sm text-primary">{uploadProgress}</p>}
       {/* Progress Steps */}
       <div className="flex items-center gap-4">
         <div

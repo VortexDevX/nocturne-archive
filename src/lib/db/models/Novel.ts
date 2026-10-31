@@ -3,6 +3,13 @@ import { Novel } from "@/types";
 
 const NovelSchema = new Schema<Novel>(
   {
+    storageBackend: { type: String, enum: ["local", "r2"] },
+    coverObjectKey: String,
+    uploadState: { type: String, enum: ["draft", "uploading", "ready", "failed"] },
+    uploadId: String,
+    expectedChapters: Number,
+    coverBytes: Number,
+    coverSha256: String,
     slug: { type: String, index: true, unique: true, sparse: true },
     title: {
       type: String,
@@ -41,7 +48,7 @@ const NovelSchema = new Schema<Novel>(
     },
     folderPath: {
       type: String,
-      required: true,
+      default: "",
     },
     addedBy: {
       type: String,

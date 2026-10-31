@@ -1,3 +1,4 @@
+import { readableNovelFilter } from "@/lib/storage/config";
 import { NextRequest, NextResponse } from "next/server";
 import { verifyAuth } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    const novel = await NovelModel.findOne({ slug: novelId })
+    const novel = await NovelModel.findOne({ slug: novelId, ...readableNovelFilter() })
       .select("totalChapters")
       .lean();
     let totalChapters = novel?.totalChapters || 0;

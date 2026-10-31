@@ -1,3 +1,4 @@
+import { readableNovelFilter } from "@/lib/storage/config";
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import connectDB from "@/lib/db/mongodb";
@@ -31,7 +32,7 @@ export async function GET() {
     await connectDB();
 
     // Get novels from database
-    const dbNovels = await NovelModel.find({ addedBy: session.userId });
+    const dbNovels = await NovelModel.find({ addedBy: session.userId, ...readableNovelFilter() });
 
     // Get novels from file system
     const novelFolders = await getNovelFolders();

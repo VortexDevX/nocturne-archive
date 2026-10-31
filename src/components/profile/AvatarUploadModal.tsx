@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import Image from "next/image";
+import { api, sha256, putFile } from "@/lib/storage/upload-client";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import { FiUpload, FiImage, FiFolder } from "react-icons/fi";
@@ -30,8 +31,8 @@ export default function AvatarUploadModal({
       return;
     }
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error("File size must be less than 5MB");
+    if (selectedFile.size > 3 * 1024 * 1024) {
+      toast.error("File size must be less than 3MB");
       return;
     }
 
@@ -68,6 +69,12 @@ export default function AvatarUploadModal({
 
     setUploading(true);
     try {
+      const prepared = await api<{ backend: string; filename: string; type: string; url: string }>("/api/user/avatar/prepare", { extension: file.name.split(".").pop()?.toLowerCase(), size: file.size, sha256: await sha256(file) });
+      if (prepared.backend === "r2") {
+        await putFile(prepared.url, file, prepared.type);
+        const result = await api<{ user: import("@/types").User }>("/api/user/avatar/complete", { filename: prepared.filename });
+        setUser(result.user); toast.success("Avatar updated"); onClose(); setFile(null); setPreview(null); return;
+      }
       const formData = new FormData();
       formData.append("avatar", file);
 
@@ -88,8 +95,8 @@ export default function AvatarUploadModal({
         toast.error(data.message || "Failed to upload avatar");
       }
     } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("Failed to upload avatar");
+
+      toast.error(error instanceof Error ? error.message : "Failed to upload avatar");
     } finally {
       setUploading(false);
     }
@@ -159,7 +166,7 @@ export default function AvatarUploadModal({
                 Drag & drop your image here
               </p>
               <p className="text-sm text-muted-foreground mb-4">
-                PNG, JPG, GIF up to 5MB
+                PNG, JPG, GIF up to 3MB
               </p>
 
               {/* Divider */}

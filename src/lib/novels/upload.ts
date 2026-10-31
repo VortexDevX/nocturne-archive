@@ -1,3 +1,4 @@
+import { usesR2 } from "@/lib/storage/config";
 import path from "path";
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
@@ -66,6 +67,7 @@ export async function createUploadedNovel(
   userId: string,
   cover?: File,
 ) {
+  if (usesR2()) throw new NovelUploadError("Use direct storage uploads", 409);
   const parsed = novelInput.safeParse(input);
   if (!parsed.success)
     throw new NovelUploadError(
@@ -144,6 +146,7 @@ export async function appendUploadedChapters(
   chapters: { title: string; content: string }[],
   userId: string,
 ) {
+  if (usesR2()) throw new NovelUploadError("Use direct storage uploads", 409);
   if (!isSafePathSegment(slug))
     throw new NovelUploadError("Invalid novel slug");
   const metadata = await readNovelMetadata(slug);
