@@ -293,6 +293,7 @@ function ChapterReader({
 }) {
   const router = useRouter();
   const [chromeHidden, setChromeHidden] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<"general" | "advanced">("general");
   const pointerStart = useRef({ x: 0, y: 0, scroll: 0 });
   const { theme, setTheme } = useTheme();
   const settings = useReaderStore();
@@ -585,18 +586,24 @@ function ChapterReader({
         setChromeHidden((hidden) => !hidden);
       }}>
       <header className="reader-toolbar">
-        <Link href={`/novel/${novelId}`} className="reader-back" aria-label="Back to novel">
-          <FiArrowLeft aria-hidden="true" /><span>Back to book</span>
-        </Link>
+        <div className="reader-toolbar-start">
+          <Link href={`/novel/${novelId}`} className="reader-back" aria-label="Back to novel">
+            <FiArrowLeft aria-hidden="true" /><span>Back</span>
+          </Link>
+          <button ref={searchTrigger} className="reader-tool" aria-label="Search chapter text" title="Search chapter" aria-expanded={findOpen} onClick={() => setFindOpen((open) => !open)}><FiSearch aria-hidden="true" /></button>
+        </div>
         <div className="reader-book-title">
-          <span className="eyebrow">NOW READING</span>
           <Link href={`/novel/${novelId}`}>{novel.title}</Link>
         </div>
-        <span className="reader-tap-hint text-xs text-muted-foreground text-right">Tap page to hide controls</span>
+        <nav className="reader-tools" aria-label="Reader tools">
+          <button className="reader-tool" onClick={openChapters} aria-label="Open chapters" title="Chapters" aria-haspopup="dialog" aria-expanded={panel === "chapters"}><FiList aria-hidden="true" /></button>
+          <button className="reader-tool" onClick={() => { setSelectedText(window.getSelection()?.toString() || ""); setBookmark(true); }} aria-label="Bookmark passage" title="Bookmark passage" aria-haspopup="dialog"><FiBookmark aria-hidden="true" /></button>
+          <button className="reader-tool" onClick={() => { setSettingsTab("general"); setPanel("settings"); }} aria-label="Reading settings" title="Reading settings" aria-haspopup="dialog" aria-expanded={panel === "settings"}><FiSliders aria-hidden="true" /></button>
+        </nav>
       </header>
 
       {findOpen && <ChapterSearch query={findQuery} onQuery={(value) => { setFindQuery(value); setMatchIndex(0); }}
-        current={matchIndex} total={found.count} onMove={(direction) => setMatchIndex((index) => found.count ? (index + direction + found.count) % found.count : 0)}
+        total={found.count} onMove={(direction) => setMatchIndex((index) => found.count ? (index + direction + found.count) % found.count : 0)}
         onClose={() => { setFindOpen(false); setFindQuery(""); searchTrigger.current?.focus(); }} />}
       <div className="reader-workspace">
         <aside className="reader-margin" aria-label="Book information">
@@ -638,19 +645,6 @@ function ChapterReader({
           </div>
         </div>
 
-        <nav className="reader-tools" aria-label="Reader tools">
-          <button ref={searchTrigger} className="reader-tool" aria-label="Search chapter text" aria-expanded={findOpen} onClick={() => setFindOpen((open) => !open)}><FiSearch aria-hidden="true" /><span>Find</span></button>
-          <button className="reader-tool" onClick={openChapters} aria-label="Open chapters" aria-haspopup="dialog" aria-expanded={panel === "chapters"}>
-            <FiList aria-hidden="true" /><span>Contents</span>
-          </button>
-          <button className="reader-tool" onClick={() => { setSelectedText(window.getSelection()?.toString() || ""); setBookmark(true); }}
-            aria-label="Bookmark passage" aria-haspopup="dialog">
-            <FiBookmark aria-hidden="true" /><span>Bookmark</span>
-          </button>
-          <button className="reader-tool" onClick={() => setPanel("settings")} aria-label="Reading settings" aria-haspopup="dialog" aria-expanded={panel === "settings"}>
-            <FiSliders aria-hidden="true" /><span>Appearance</span>
-          </button>
-        </nav>
       </div>
 
 
@@ -660,7 +654,7 @@ function ChapterReader({
           aria-label={readingMode === "paged" ? "Previous page" : "Previous chapter"}>
           <FiChevronLeft aria-hidden="true" /><span>Previous</span>
         </button>
-        <span className="text-xs text-muted-foreground text-center" aria-live="off">{readingMode === "paged" ? `Page ${pages.current} of ${pages.total}` : `Chapter ${chapter.number} of ${novel.totalChapters}`}</span>
+        <span className="reader-location-label text-xs text-muted-foreground text-center" aria-live="off"><span>{`CHAPTER ${chapter.number} · ${chapter.title}`}</span><span>{readingMode === "paged" ? `Page ${pages.current} of ${pages.total}` : `${chapter.number} of ${novel.totalChapters}`}</span></span>
         <button className="reader-step" onClick={() => readingMode === "paged" ? turnPage(1) : next && navigate(next.number)}
           disabled={readingMode === "paged" ? pages.current === pages.total && !next : !next}
           aria-label={readingMode === "paged" ? "Next page" : "Next chapter"}>
@@ -670,14 +664,16 @@ function ChapterReader({
       <Modal
         isOpen={panel === "settings"}
         onClose={() => setPanel(null)}
-        title="Your reading space"
+         title="Reading settings"
         size="sm"
         placement="right"
       >
         <div className="space-y-6 reader-settings">
-          <p className="text-sm text-muted-foreground">
-            Settle into a page that suits you. Changes save automatically.
-          </p>
+           <div className="reader-settings-tabs" role="tablist" aria-label="Settings sections">
+             <button type="button" role="tab" aria-selected={settingsTab === "general"} onClick={() => setSettingsTab("general")}>General</button>
+             <button type="button" role="tab" aria-selected={settingsTab === "advanced"} onClick={() => setSettingsTab("advanced")}>Advanced</button>
+           </div>
+           {settingsTab === "general" ? <>
           <fieldset>
             <legend className="reader-label">Atmosphere</legend>
             <ThemeChoices value={theme} onChange={setTheme} />
@@ -710,6 +706,24 @@ function ChapterReader({
             step={1}
             onChange={settings.setFontSize}
           />
+           <ReaderSlider
+             label="Brightness"
+             value={brightness}
+             display={`${brightness}%`}
+             min={50}
+             max={120}
+             step={5}
+             onChange={settings.setBrightness}
+           />
+           <fieldset>
+             <legend className="reader-label">Reading flow</legend>
+             <div className="grid grid-cols-2 gap-2">
+               {(["continuous", "paged"] as const).map((mode) => (
+                 <button key={mode} className={`reader-pill ${readingMode === mode ? "selected" : ""}`} aria-pressed={readingMode === mode} onClick={() => settings.setReadingMode(mode)}>{mode === "continuous" ? "Scroll" : "Turn pages"}</button>
+               ))}
+             </div>
+           </fieldset>
+           </> : <>
           <ReaderSlider
             label="Line spacing"
             value={lineHeight}
@@ -727,15 +741,6 @@ function ChapterReader({
             max={960}
             step={40}
             onChange={settings.setContentWidth}
-          />
-          <ReaderSlider
-            label="Brightness"
-            value={brightness}
-            display={`${brightness}%`}
-            min={50}
-            max={120}
-            step={5}
-            onChange={settings.setBrightness}
           />
           <fieldset disabled={theme === "amoled"}>
             <legend className="reader-label">Page tint</legend>
@@ -757,21 +762,6 @@ function ChapterReader({
               ))}
             </div>
           </fieldset>
-          <fieldset>
-            <legend className="reader-label">Reading flow</legend>
-            <div className="grid grid-cols-2 gap-2">
-              {(["continuous", "paged"] as const).map((mode) => (
-                <button
-                  key={mode}
-                  className={`reader-pill ${readingMode === mode ? "selected" : ""}`}
-                  aria-pressed={readingMode === mode}
-                  onClick={() => settings.setReadingMode(mode)}
-                >
-                  {mode === "continuous" ? "Scroll" : "Turn pages"}
-                </button>
-              ))}
-            </div>
-          </fieldset>
           <button
             className="reader-action w-full"
             onClick={() => {
@@ -785,6 +775,7 @@ function ChapterReader({
           <p className="text-xs text-muted-foreground">
             Arrow keys: move through text · M: focus · S: appearance
           </p>
+           </>}
         </div>
       </Modal>
       <Modal
